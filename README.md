@@ -1,2 +1,2 @@
 # SubRadar
-Free opensaurce cross-platform app for subscription tracking
+Free open-source cross-platform app for subscription tracking
