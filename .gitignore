@@ -36,3 +36,6 @@ SubRadar/GoogleService-Info.plist
 .AppleDouble
 .LSOverride
 Thumbs.db
+
+# ZIPs
+*.zip

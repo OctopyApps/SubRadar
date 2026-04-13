@@ -27,6 +27,16 @@ final class AppState: ObservableObject {
         }
     }
 
+    // MARK: - Storage Mode
+
+    /// Текущий режим хранения из сохранённой конфигурации.
+    /// Возвращает .local если конфигурация ещё не задана (онбординг).
+    var storageMode: StorageMode {
+        defaults.configuration?.storageMode ?? .local
+    }
+
+    // MARK: - Intents
+
     func selectMode(_ mode: StorageMode) {
         switch mode {
         case .local:

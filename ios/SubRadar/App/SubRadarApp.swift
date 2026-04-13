@@ -32,7 +32,7 @@ struct SubRadarApp: App {
                     EmptyView()
                 }
             case .main:
-                Text("Главный экран — скоро")
+                SubscriptionsView()
                     .environmentObject(appState)
                     .transition(.opacity)
             }
@@ -42,7 +42,7 @@ struct SubRadarApp: App {
                     appState.resetForDebug()
                 }
                 .font(.system(size: 12))
-                .foregroundColor(Color("#000000"))
+                .foregroundColor(Color(hex: "#000000"))
                 .padding(.top, 8)
             #endif
         }
