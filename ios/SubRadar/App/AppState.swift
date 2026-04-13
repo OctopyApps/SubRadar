@@ -30,8 +30,7 @@ final class AppState: ObservableObject {
     func selectMode(_ mode: StorageMode) {
         switch mode {
         case .local:
-            let config = AppConfiguration.local()
-            defaults.configuration = config
+            defaults.configuration = .local()
             withAnimation(.easeInOut(duration: 0.4)) {
                 currentScreen = .main
             }
@@ -42,17 +41,15 @@ final class AppState: ObservableObject {
         }
     }
 
-    func completeAuth(mode: StorageMode, token: String? = nil) {
-        let config: AppConfiguration
+    func completeAuth(mode: StorageMode, token: String? = nil, serverURL: String? = nil) {
         switch mode {
         case .local:
-            config = .local()
+            defaults.configuration = .local()
         case .shared:
-            config = .shared(token: token)
+            defaults.configuration = .shared(token: token)
         case .selfHosted:
-            config = .selfHosted(token: token, serverURL: nil)
+            defaults.configuration = .selfHosted(token: token, serverURL: serverURL)
         }
-        defaults.configuration = config
         withAnimation(.easeInOut(duration: 0.4)) {
             currentScreen = .main
         }
@@ -64,7 +61,7 @@ final class AppState: ObservableObject {
             currentScreen = .onboarding
         }
     }
-    
+
     func resetForDebug() {
         defaults.configuration = nil
         withAnimation(.easeInOut(duration: 0.4)) {

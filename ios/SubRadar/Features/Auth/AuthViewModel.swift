@@ -26,14 +26,104 @@ final class AuthViewModel: ObservableObject {
             errorMessage = "Заполните все поля"
             return
         }
+        errorMessage = nil
         isLoading = true
-        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) {
-            self.isLoading = false
-            appState.completeAuth(mode: self.mode)
+
+        Task {
+            do {
+                let token = try await authRequest(email: email, password: password)
+                isLoading = false
+                appState.completeAuth(mode: mode, token: token)
+            } catch {
+                isLoading = false
+                errorMessage = mapError(error)
+            }
         }
     }
 
     func loginWithGoogle(appState: AppState) {
-        appState.completeAuth(mode: mode)
+        // TODO: подключить GoogleSignIn SDK
+        appState.completeAuth(mode: mode, token: nil)
+    }
+
+    // MARK: - Private
+
+    private func authRequest(email: String, password: String) async throws -> String? {
+        // Базовый URL будет браться из конфигурации сервера — пока хардкод
+        guard let url = URL(string: "https://api.subradar.io/auth") else {
+            throw AuthError.badURL
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.timeoutInterval = 10
+
+        let body = AuthRequestBody(email: email, password: password)
+        request.httpBody = try JSONEncoder().encode(body)
+
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let http = response as? HTTPURLResponse else {
+            throw AuthError.invalidResponse
+        }
+
+        switch http.statusCode {
+        case 200:
+            let decoded = try JSONDecoder().decode(AuthResponseBody.self, from: data)
+            return decoded.token
+        case 401:
+            throw AuthError.wrongCredentials
+        case 500...:
+            throw AuthError.serverError
+        default:
+            throw AuthError.invalidResponse
+        }
+    }
+
+    private func mapError(_ error: Error) -> String {
+        if let authError = error as? AuthError {
+            return authError.message
+        }
+        if let urlError = error as? URLError {
+            switch urlError.code {
+            case .notConnectedToInternet:
+                return "Нет подключения к интернету"
+            case .timedOut:
+                return "Сервер не отвечает"
+            default:
+                return "Ошибка сети"
+            }
+        }
+        return "Неизвестная ошибка"
+    }
+}
+
+// MARK: - Models
+
+private struct AuthRequestBody: Encodable {
+    let email: String
+    let password: String
+}
+
+private struct AuthResponseBody: Decodable {
+    let token: String
+}
+
+// MARK: - Errors
+
+enum AuthError: Error {
+    case badURL
+    case invalidResponse
+    case wrongCredentials
+    case serverError
+
+    var message: String {
+        switch self {
+        case .badURL:           return "Неверный адрес сервера"
+        case .invalidResponse:  return "Неожиданный ответ сервера"
+        case .wrongCredentials: return "Неверный email или пароль"
+        case .serverError:      return "Ошибка на стороне сервера"
+        }
     }
 }

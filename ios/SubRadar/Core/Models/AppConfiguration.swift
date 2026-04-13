@@ -10,8 +10,8 @@ import Foundation
 struct AppConfiguration: Codable {
     let storageMode: StorageMode
     let isAuthenticated: Bool
-    let authToken: String?      // JWT токен — придёт от сервера после логина/регистрации
-    let serverURL: String?      // для selfHosted режима
+    let authToken: String?
+    let serverURL: String?
 
     static func local() -> AppConfiguration {
         AppConfiguration(

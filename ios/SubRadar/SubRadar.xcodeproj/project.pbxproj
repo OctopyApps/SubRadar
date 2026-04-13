@@ -48,6 +48,8 @@
 				Auth/RegisterViewModel.swift,
 				Onboarding/OnboardingView.swift,
 				Onboarding/OnboardingViewModel.swift,
+				ServerSetup/ServerSetupView.swift,
+				ServerSetup/ServerSetupViewModel.swift,
 			);
 			target = EB4A5B402F8C2F2500193B74 /* SubRadar */;
 		};
