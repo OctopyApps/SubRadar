@@ -61,6 +61,9 @@
 				Models/AppConfiguration.swift,
 				Models/StorageMode.swift,
 				Models/Subscription.swift,
+				Storage/LocalStorageService.swift,
+				Storage/StorageService.swift,
+				Storage/StorageServiceFactory.swift,
 				Storage/UserDefaultsService.swift,
 			);
 			target = EB4A5B402F8C2F2500193B74 /* SubRadar */;

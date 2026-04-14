@@ -7,45 +7,127 @@
 
 import SwiftUI
 
+// MARK: - Scroll offset preference
+
+private struct ScrollOffsetKey: PreferenceKey {
+    static var defaultValue: CGFloat = 0
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = nextValue()
+    }
+}
+
 // MARK: - Main View
 
 struct SubscriptionsView: View {
     @EnvironmentObject private var appState: AppState
-    @StateObject private var viewModel = SubscriptionsViewModel()
+
+    // ViewModel создаётся с нужным сервисом через фабрику
+    @StateObject private var viewModel: SubscriptionsViewModel
+
+    init() {
+        // StateObject с кастомным init — стандартный паттерн для внедрения зависимостей
+        let storage = StorageServiceFactory.make(for: UserDefaultsService.shared.configuration?.storageMode ?? .local)
+        _viewModel = StateObject(wrappedValue: SubscriptionsViewModel(storage: storage))
+    }
+
+    @State private var scrollOffset: CGFloat = 0
+
+    private let collapseThreshold: CGFloat = 80
+
+    private var collapseProgress: CGFloat {
+        guard scrollOffset < 0 else { return 0 }
+        return min(-scrollOffset / collapseThreshold, 1.0)
+    }
+
+    private var heroFontSize: CGFloat   { 48 - (48 - 22) * collapseProgress }
+    private var heroKerning: CGFloat    { -1.5 + (1.5 - 0.3) * collapseProgress }
+    private var subtitleOpacity: CGFloat { max(0, 1 - collapseProgress * 3) }
+    private var heroPaddingTop: CGFloat    { 28 - 18 * collapseProgress }
+    private var heroPaddingBottom: CGFloat { 32 - 20 * collapseProgress }
 
     var body: some View {
         ZStack(alignment: .bottom) {
             Color(hex: "#0A0A0F").ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                topBar
-                    .padding(.horizontal, 24)
-                    .padding(.top, 8)
+            ScrollView(showsIndicators: false) {
+                VStack(spacing: 0) {
+                    GeometryReader { geo in
+                        Color.clear
+                            .preference(
+                                key: ScrollOffsetKey.self,
+                                value: geo.frame(in: .named("scroll")).minY
+                            )
+                    }
+                    .frame(height: 0)
 
-                ScrollView(showsIndicators: false) {
-                    VStack(spacing: 0) {
-                        heroTotal
-                            .padding(.top, 28)
-                            .padding(.bottom, 32)
-
-                        categoryFilter
-                            .padding(.bottom, 20)
-
+                    // Контент в зависимости от состояния
+                    if viewModel.isLoading {
+                        loadingState
+                            .padding(.top, 40)
+                    } else if viewModel.isEmpty {
+                        emptyState
+                            .padding(.top, 40)
+                    } else {
                         subscriptionCards
                             .padding(.horizontal, 20)
-
-                        // Отступ под таб-бар
-                        Spacer().frame(height: 100)
+                            .padding(.top, 16)
                     }
+
+                    Spacer().frame(height: 100)
                 }
+            }
+            .coordinateSpace(name: "scroll")
+            .onPreferenceChange(ScrollOffsetKey.self) { value in
+                withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.8)) {
+                    scrollOffset = value
+                }
+            }
+            .safeAreaInset(edge: .top, spacing: 0) {
+                stickyHeader
             }
 
             tabBar
+        }
+        .task {
+            await viewModel.load()
         }
         .sheet(isPresented: $viewModel.isMenuOpen) {
             MenuSheet()
                 .environmentObject(appState)
         }
+        .alert("Ошибка", isPresented: .constant(viewModel.error != nil), presenting: viewModel.error) { _ in
+            Button("OK") { viewModel.error = nil }
+        } message: { error in
+            Text(error.localizedDescription)
+        }
+    }
+
+    // MARK: - Sticky Header
+
+    private var stickyHeader: some View {
+        VStack(spacing: 0) {
+            topBar
+                .padding(.horizontal, 24)
+                .padding(.top, 8)
+                .padding(.bottom, 4)
+
+            heroTotal
+                .padding(.top, heroPaddingTop)
+                .padding(.bottom, heroPaddingBottom)
+
+            Rectangle()
+                .fill(Color(hex: "#1E1E35"))
+                .frame(height: 1)
+                .opacity(collapseProgress)
+
+            categoryFilter
+                .padding(.top, 12)
+                .padding(.bottom, 12)
+        }
+        .background(
+            Color(hex: "#0A0A0F")
+                .ignoresSafeArea(edges: .top)
+        )
     }
 
     // MARK: Top Bar
@@ -68,16 +150,19 @@ struct SubscriptionsView: View {
     private var heroTotal: some View {
         VStack(spacing: 6) {
             Text(viewModel.formattedTotal)
-                .font(.system(size: 48, weight: .bold))
+                .font(.system(size: heroFontSize, weight: .bold))
                 .foregroundColor(Color(hex: "#EEEEFF"))
-                .kerning(-1.5)
+                .kerning(heroKerning)
                 .contentTransition(.numericText())
+                .frame(maxWidth: .infinity)
 
             Text("\(viewModel.subscriptions.count) активных подписок")
                 .font(.system(size: 14))
                 .foregroundColor(Color(hex: "#55558A"))
+                .opacity(subtitleOpacity)
+                .frame(height: subtitleOpacity > 0 ? nil : 0)
+                .clipped()
         }
-        .frame(maxWidth: .infinity)
     }
 
     // MARK: Category Filter
@@ -103,9 +188,54 @@ struct SubscriptionsView: View {
     private var subscriptionCards: some View {
         LazyVStack(spacing: 12) {
             ForEach(viewModel.filtered) { sub in
-                SubscriptionCard(subscription: sub)
+                SubscriptionCard(subscription: sub) {
+                    Task { await viewModel.delete(sub) }
+                }
             }
         }
+    }
+
+    // MARK: Loading State
+
+    private var loadingState: some View {
+        VStack(spacing: 16) {
+            ProgressView()
+                .tint(Color(hex: "#6C5CE7"))
+                .scaleEffect(1.2)
+            Text("Загрузка...")
+                .font(.system(size: 14))
+                .foregroundColor(Color(hex: "#55558A"))
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 60)
+    }
+
+    // MARK: Empty State
+
+    private var emptyState: some View {
+        VStack(spacing: 16) {
+            ZStack {
+                Circle()
+                    .fill(Color(hex: "#6C5CE7").opacity(0.1))
+                    .frame(width: 72, height: 72)
+
+                Image(systemName: "creditcard")
+                    .font(.system(size: 28, weight: .medium))
+                    .foregroundColor(Color(hex: "#6C5CE7").opacity(0.6))
+            }
+
+            VStack(spacing: 6) {
+                Text("Нет подписок")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundColor(Color(hex: "#DDDDF5"))
+
+                Text("Нажмите + чтобы добавить первую")
+                    .font(.system(size: 14))
+                    .foregroundColor(Color(hex: "#55558A"))
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, 60)
     }
 
     // MARK: Tab Bar
@@ -119,7 +249,7 @@ struct SubscriptionsView: View {
             Spacer()
 
             AddButton {
-                // TODO: open add subscription sheet
+                // TODO: open AddSubscriptionView sheet
             }
 
             Spacer()
@@ -223,6 +353,7 @@ private struct CategoryPill: View {
 
 private struct SubscriptionCard: View {
     let subscription: Subscription
+    let onDelete: () -> Void
     @State private var isPressed = false
 
     private var daysUntilBilling: Int {
@@ -250,7 +381,6 @@ private struct SubscriptionCard: View {
             // TODO: navigate to subscription detail
         }) {
             HStack(spacing: 16) {
-                // Icon
                 ZStack {
                     RoundedRectangle(cornerRadius: 13)
                         .fill(Color(hex: subscription.color).opacity(0.15))
@@ -261,7 +391,6 @@ private struct SubscriptionCard: View {
                         .foregroundColor(Color(hex: subscription.color))
                 }
 
-                // Name + next billing
                 VStack(alignment: .leading, spacing: 4) {
                     Text(subscription.name)
                         .font(.system(size: 16, weight: .medium))
@@ -274,7 +403,6 @@ private struct SubscriptionCard: View {
 
                 Spacer()
 
-                // Price
                 VStack(alignment: .trailing, spacing: 3) {
                     Text("\(subscription.currency) \(Int(subscription.price))")
                         .font(.system(size: 16, weight: .semibold))
@@ -304,6 +432,11 @@ private struct SubscriptionCard: View {
                 .onChanged { _ in isPressed = true }
                 .onEnded { _ in isPressed = false }
         )
+        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
+            Button(role: .destructive, action: onDelete) {
+                Label("Удалить", systemImage: "trash")
+            }
+        }
     }
 }
 
