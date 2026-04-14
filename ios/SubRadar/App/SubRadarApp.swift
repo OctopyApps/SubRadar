@@ -19,20 +19,32 @@ struct SubRadarApp: App {
                     .environmentObject(appState)
                     .transition(.opacity)
             case .auth(let mode):
-                AuthView(mode: mode)
-                    .environmentObject(appState)
-                    .transition(.opacity)
+                switch mode {
+                case .shared:
+                    AuthView(mode: mode)
+                        .environmentObject(appState)
+                        .transition(.opacity)
+                case .selfHosted:
+                    ServerSetupView(mode: mode)
+                        .environmentObject(appState)
+                        .transition(.opacity)
+                case .local:
+                    EmptyView()
+                }
             case .main:
-                Text("Главный экран — скоро")
+                SubscriptionsView()
                     .environmentObject(appState)
                     .transition(.opacity)
             }
-            Button("Сбросить (debug)") {
-                appState.resetForDebug()
-            }
-            .font(.system(size: 12))
-            .foregroundColor(Color(hex: "#3A3A60"))
-            .padding(.top, 8)
+      
+            #if DEBUG
+                Button("Сбросить (debug)") {
+                    appState.resetForDebug()
+                }
+                .font(.system(size: 12))
+                .foregroundColor(Color(hex: "#000000"))
+                .padding(.top, 8)
+            #endif
         }
         
     }

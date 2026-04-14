@@ -48,6 +48,12 @@
 				Auth/RegisterViewModel.swift,
 				Onboarding/OnboardingView.swift,
 				Onboarding/OnboardingViewModel.swift,
+				ServerSetup/ServerSetupView.swift,
+				ServerSetup/ServerSetupViewModel.swift,
+				Subscriptions/Add/AddSubscriptionView.swift,
+				Subscriptions/Add/AddSubscriptionViewModel.swift,
+				Subscriptions/SubscriptionsView.swift,
+				Subscriptions/SubscriptionsViewModel.swift,
 			);
 			target = EB4A5B402F8C2F2500193B74 /* SubRadar */;
 		};
@@ -56,6 +62,11 @@
 			membershipExceptions = (
 				Models/AppConfiguration.swift,
 				Models/StorageMode.swift,
+				Models/Subscription.swift,
+				Models/Tag.swift,
+				Storage/LocalStorageService.swift,
+				Storage/StorageService.swift,
+				Storage/StorageServiceFactory.swift,
 				Storage/UserDefaultsService.swift,
 			);
 			target = EB4A5B402F8C2F2500193B74 /* SubRadar */;

@@ -60,12 +60,6 @@ struct OnboardingView: View {
                 Spacer()
             }
         }
-    Button("Сбросить (debug)") {
-        appState.resetForDebug()
-    }
-    .font(.system(size: 12))
-    .foregroundColor(Color(hex: "#3A3A60"))
-    .padding(.top, 8)
     }
 }
 
