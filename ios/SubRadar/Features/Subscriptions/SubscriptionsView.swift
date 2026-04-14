@@ -20,13 +20,12 @@ private struct ScrollOffsetKey: PreferenceKey {
 
 struct SubscriptionsView: View {
     @EnvironmentObject private var appState: AppState
-
-    // ViewModel создаётся с нужным сервисом через фабрику
     @StateObject private var viewModel: SubscriptionsViewModel
 
     init() {
-        // StateObject с кастомным init — стандартный паттерн для внедрения зависимостей
-        let storage = StorageServiceFactory.make(for: UserDefaultsService.shared.configuration?.storageMode ?? .local)
+        let storage = StorageServiceFactory.make(
+            for: UserDefaultsService.shared.configuration?.storageMode ?? .local
+        )
         _viewModel = StateObject(wrappedValue: SubscriptionsViewModel(storage: storage))
     }
 
@@ -39,11 +38,11 @@ struct SubscriptionsView: View {
         return min(-scrollOffset / collapseThreshold, 1.0)
     }
 
-    private var heroFontSize: CGFloat   { 48 - (48 - 22) * collapseProgress }
-    private var heroKerning: CGFloat    { -1.5 + (1.5 - 0.3) * collapseProgress }
-    private var subtitleOpacity: CGFloat { max(0, 1 - collapseProgress * 3) }
-    private var heroPaddingTop: CGFloat    { 28 - 18 * collapseProgress }
-    private var heroPaddingBottom: CGFloat { 32 - 20 * collapseProgress }
+    private var heroFontSize: CGFloat      { 36 - (36 - 18) * collapseProgress }
+    private var heroKerning: CGFloat       { -1.0 + (1.0 - 0.2) * collapseProgress }
+    private var subtitleOpacity: CGFloat   { max(0, 1 - collapseProgress * 3) }
+    private var heroPaddingTop: CGFloat    { 20 - 10 * collapseProgress }
+    private var heroPaddingBottom: CGFloat { 24 - 14 * collapseProgress }
 
     var body: some View {
         ZStack(alignment: .bottom) {
@@ -60,13 +59,10 @@ struct SubscriptionsView: View {
                     }
                     .frame(height: 0)
 
-                    // Контент в зависимости от состояния
                     if viewModel.isLoading {
-                        loadingState
-                            .padding(.top, 40)
+                        loadingState.padding(.top, 40)
                     } else if viewModel.isEmpty {
-                        emptyState
-                            .padding(.top, 40)
+                        emptyState.padding(.top, 40)
                     } else {
                         subscriptionCards
                             .padding(.horizontal, 20)
@@ -88,17 +84,19 @@ struct SubscriptionsView: View {
 
             tabBar
         }
-        .task {
-            await viewModel.load()
-        }
+        .task { await viewModel.load() }
         .sheet(isPresented: $viewModel.isMenuOpen) {
-            MenuSheet()
-                .environmentObject(appState)
+            MenuSheet().environmentObject(appState)
+        }
+        .sheet(isPresented: $viewModel.isAddingSubscription) {
+            AddSubscriptionView(storage: viewModel.storage) { subscription in
+                viewModel.subscriptionAdded(subscription)
+            }
         }
         .alert("Ошибка", isPresented: .constant(viewModel.error != nil), presenting: viewModel.error) { _ in
             Button("OK") { viewModel.error = nil }
-        } message: { error in
-            Text(error.localizedDescription)
+        } message: { e in
+            Text(e.localizedDescription)
         }
     }
 
@@ -125,12 +123,11 @@ struct SubscriptionsView: View {
                 .padding(.bottom, 12)
         }
         .background(
-            Color(hex: "#0A0A0F")
-                .ignoresSafeArea(edges: .top)
+            Color(hex: "#0A0A0F").ignoresSafeArea(edges: .top)
         )
     }
 
-    // MARK: Top Bar
+    // MARK: - Top Bar
 
     private var topBar: some View {
         HStack {
@@ -138,34 +135,68 @@ struct SubscriptionsView: View {
                 .font(.system(size: 20, weight: .semibold))
                 .foregroundColor(Color(hex: "#EEEEFF"))
                 .kerning(-0.4)
-
             Spacer()
-
             UserAvatarView(mode: appState.storageMode)
         }
     }
 
-    // MARK: Hero Total
+    // MARK: - Hero Total (multi-currency)
 
     private var heroTotal: some View {
-        VStack(spacing: 6) {
-            Text(viewModel.formattedTotal)
-                .font(.system(size: heroFontSize, weight: .bold))
-                .foregroundColor(Color(hex: "#EEEEFF"))
-                .kerning(heroKerning)
-                .contentTransition(.numericText())
-                .frame(maxWidth: .infinity)
+        VStack(spacing: 4) {
+            if viewModel.activeCurrencyTotals.isEmpty {
+                // Нет подписок — показываем заглушку
+                Text("₽ 0 / мес")
+                    .font(.system(size: heroFontSize, weight: .bold))
+                    .foregroundColor(Color(hex: "#EEEEFF"))
+                    .kerning(heroKerning)
+            } else if viewModel.activeCurrencyTotals.count == 1,
+                      let entry = viewModel.activeCurrencyTotals.first {
+                // Одна валюта — большая цифра как раньше
+                Text("\(viewModel.formattedTotal(for: entry.currency)) / мес")
+                    .font(.system(size: heroFontSize, weight: .bold))
+                    .foregroundColor(Color(hex: "#EEEEFF"))
+                    .kerning(heroKerning)
+                    .contentTransition(.numericText())
+            } else {
+                // Несколько валют — строчка на каждую
+                HStack(spacing: 16) {
+                    ForEach(viewModel.activeCurrencyTotals, id: \.currency) { entry in
+                        VStack(spacing: 2) {
+                            Text(viewModel.formattedTotal(for: entry.currency))
+                                .font(.system(size: heroFontSize, weight: .bold))
+                                .foregroundColor(Color(hex: "#EEEEFF"))
+                                .kerning(heroKerning)
+                                .contentTransition(.numericText())
+
+                            Text(entry.currency.rawValue)
+                                .font(.system(size: 11))
+                                .foregroundColor(Color(hex: "#44446A"))
+                                .opacity(subtitleOpacity)
+                        }
+
+                        if entry.currency != viewModel.activeCurrencyTotals.last?.currency {
+                            Rectangle()
+                                .fill(Color(hex: "#2D2D45"))
+                                .frame(width: 1, height: 28)
+                                .opacity(subtitleOpacity)
+                        }
+                    }
+                }
+            }
 
             Text("\(viewModel.subscriptions.count) активных подписок")
-                .font(.system(size: 14))
+                .font(.system(size: 13))
                 .foregroundColor(Color(hex: "#55558A"))
                 .opacity(subtitleOpacity)
                 .frame(height: subtitleOpacity > 0 ? nil : 0)
                 .clipped()
+                .padding(.top, 2)
         }
+        .frame(maxWidth: .infinity)
     }
 
-    // MARK: Category Filter
+    // MARK: - Category Filter
 
     private var categoryFilter: some View {
         ScrollView(.horizontal, showsIndicators: false) {
@@ -183,7 +214,7 @@ struct SubscriptionsView: View {
         }
     }
 
-    // MARK: Subscription Cards
+    // MARK: - Cards
 
     private var subscriptionCards: some View {
         LazyVStack(spacing: 12) {
@@ -195,13 +226,11 @@ struct SubscriptionsView: View {
         }
     }
 
-    // MARK: Loading State
+    // MARK: - States
 
     private var loadingState: some View {
         VStack(spacing: 16) {
-            ProgressView()
-                .tint(Color(hex: "#6C5CE7"))
-                .scaleEffect(1.2)
+            ProgressView().tint(Color(hex: "#6C5CE7")).scaleEffect(1.2)
             Text("Загрузка...")
                 .font(.system(size: 14))
                 .foregroundColor(Color(hex: "#55558A"))
@@ -210,25 +239,20 @@ struct SubscriptionsView: View {
         .padding(.top, 60)
     }
 
-    // MARK: Empty State
-
     private var emptyState: some View {
         VStack(spacing: 16) {
             ZStack {
                 Circle()
                     .fill(Color(hex: "#6C5CE7").opacity(0.1))
                     .frame(width: 72, height: 72)
-
                 Image(systemName: "creditcard")
                     .font(.system(size: 28, weight: .medium))
                     .foregroundColor(Color(hex: "#6C5CE7").opacity(0.6))
             }
-
             VStack(spacing: 6) {
                 Text("Нет подписок")
                     .font(.system(size: 18, weight: .semibold))
                     .foregroundColor(Color(hex: "#DDDDF5"))
-
                 Text("Нажмите + чтобы добавить первую")
                     .font(.system(size: 14))
                     .foregroundColor(Color(hex: "#55558A"))
@@ -238,19 +262,15 @@ struct SubscriptionsView: View {
         .padding(.top, 60)
     }
 
-    // MARK: Tab Bar
+    // MARK: - Tab Bar
 
     private var tabBar: some View {
         HStack(alignment: .center) {
-            TabBarButton(iconName: "calendar", label: "Календарь") {
-                // TODO: navigate to calendar
-            }
+            TabBarButton(iconName: "calendar", label: "Календарь") {}
 
             Spacer()
 
-            AddButton {
-                // TODO: open AddSubscriptionView sheet
-            }
+            AddButton { viewModel.openAddSubscription() }
 
             Spacer()
 
@@ -282,8 +302,8 @@ private struct UserAvatarView: View {
 
     private var label: String {
         switch mode {
-        case .local:      return "L"
-        case .shared:     return ""
+        case .local: return "L"
+        case .shared: return ""
         case .selfHosted: return "S"
         }
     }
@@ -301,9 +321,7 @@ private struct UserAvatarView: View {
             Circle()
                 .fill(accentColor.opacity(0.15))
                 .frame(width: 36, height: 36)
-                .overlay(
-                    Circle().stroke(accentColor.opacity(0.3), lineWidth: 1)
-                )
+                .overlay(Circle().stroke(accentColor.opacity(0.3), lineWidth: 1))
 
             if mode == .shared {
                 Image(systemName: "person.fill")
@@ -362,49 +380,68 @@ private struct SubscriptionCard: View {
 
     private var billingLabel: String {
         switch daysUntilBilling {
-        case 0:      return "сегодня"
-        case 1:      return "завтра"
-        case let d:  return "через \(d) дн."
+        case 0: return "сегодня"
+        case 1: return "завтра"
+        case let d: return "через \(d) дн."
         }
     }
 
     private var billingLabelColor: Color {
         switch daysUntilBilling {
-        case 0...2:  return Color(hex: "#FF6B6B")
-        case 3...5:  return Color(hex: "#FFB347")
-        default:     return Color(hex: "#55558A")
+        case 0...2: return Color(hex: "#FF6B6B")
+        case 3...5: return Color(hex: "#FFB347")
+        default:    return Color(hex: "#55558A")
+        }
+    }
+
+    // Иконка — фото если есть, иначе SF Symbol
+    @ViewBuilder
+    private var iconView: some View {
+        if let data = subscription.imageData, let uiImage = UIImage(data: data) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 48, height: 48)
+                .clipShape(RoundedRectangle(cornerRadius: 13))
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: 13)
+                    .fill(Color(hex: subscription.color).opacity(0.15))
+                    .frame(width: 48, height: 48)
+                Image(systemName: subscription.iconName)
+                    .font(.system(size: 20, weight: .medium))
+                    .foregroundColor(Color(hex: subscription.color))
+            }
         }
     }
 
     var body: some View {
-        Button(action: {
-            // TODO: navigate to subscription detail
-        }) {
+        Button(action: { /* TODO: detail */ }) {
             HStack(spacing: 16) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 13)
-                        .fill(Color(hex: subscription.color).opacity(0.15))
-                        .frame(width: 48, height: 48)
-
-                    Image(systemName: subscription.iconName)
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(Color(hex: subscription.color))
-                }
+                iconView
 
                 VStack(alignment: .leading, spacing: 4) {
                     Text(subscription.name)
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(Color(hex: "#DDDDF5"))
 
-                    Text(billingLabel)
-                        .font(.system(size: 12))
-                        .foregroundColor(billingLabelColor)
+                    HStack(spacing: 6) {
+                        Text(billingLabel)
+                            .font(.system(size: 12))
+                            .foregroundColor(billingLabelColor)
+
+                        if let tag = subscription.tag {
+                            Text("· \(tag)")
+                                .font(.system(size: 12))
+                                .foregroundColor(Color(hex: "#44446A"))
+                        }
+                    }
                 }
 
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: 3) {
-                    Text("\(subscription.currency) \(Int(subscription.price))")
+                    Text("\(subscription.currency.symbol) \(Int(subscription.price))")
                         .font(.system(size: 16, weight: .semibold))
                         .foregroundColor(Color(hex: "#DDDDF5"))
 
@@ -440,7 +477,7 @@ private struct SubscriptionCard: View {
     }
 }
 
-// MARK: - Tab Bar Buttons
+// MARK: - Tab Bar Components
 
 private struct TabBarButton: View {
     let iconName: String
@@ -453,7 +490,6 @@ private struct TabBarButton: View {
                 Image(systemName: iconName)
                     .font(.system(size: 20, weight: .medium))
                     .foregroundColor(Color(hex: "#55558A"))
-
                 Text(label)
                     .font(.system(size: 10))
                     .foregroundColor(Color(hex: "#3A3A60"))
@@ -480,7 +516,6 @@ private struct AddButton: View {
                     )
                     .frame(width: 56, height: 56)
                     .shadow(color: Color(hex: "#6C5CE7").opacity(0.5), radius: 12, y: 4)
-
                 Image(systemName: "plus")
                     .font(.system(size: 22, weight: .medium))
                     .foregroundColor(.white)
@@ -523,10 +558,10 @@ struct MenuSheet: View {
                     .padding(.bottom, 24)
 
                 VStack(spacing: 4) {
-                    MenuRow(icon: "gear", label: "Настройки") {}
-                    MenuRow(icon: "bell", label: "Уведомления") {}
+                    MenuRow(icon: "gear",                     label: "Настройки") {}
+                    MenuRow(icon: "bell",                     label: "Уведомления") {}
                     MenuRow(icon: "arrow.triangle.2.circlepath", label: "Режим хранения") {}
-                    MenuRow(icon: "questionmark.circle", label: "Помощь") {}
+                    MenuRow(icon: "questionmark.circle",      label: "Помощь") {}
                 }
                 .padding(.horizontal, 16)
 
@@ -552,18 +587,14 @@ private struct MenuRow: View {
                     RoundedRectangle(cornerRadius: 10)
                         .fill(Color(hex: "#6C5CE7").opacity(0.12))
                         .frame(width: 38, height: 38)
-
                     Image(systemName: icon)
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(Color(hex: "#7C6EFF"))
                 }
-
                 Text(label)
                     .font(.system(size: 16, weight: .regular))
                     .foregroundColor(Color(hex: "#DDDDF5"))
-
                 Spacer()
-
                 Image(systemName: "chevron.right")
                     .font(.system(size: 12, weight: .medium))
                     .foregroundColor(Color(hex: "#44446A"))

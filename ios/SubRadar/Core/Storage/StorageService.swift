@@ -7,20 +7,23 @@
 
 import Foundation
 
-/// Единый интерфейс для работы с подписками.
+/// Единый интерфейс для работы с подписками и тегами.
 /// ViewModel знает только про этот протокол — не важно, SwiftData это, сервер или что-то ещё.
 protocol StorageService: AnyObject {
-    /// Загрузить все подписки
+
+    // MARK: Subscriptions
+
     func fetchSubscriptions() async throws -> [Subscription]
-
-    /// Сохранить новую подписку
     func save(_ subscription: Subscription) async throws
-
-    /// Обновить существующую подписку (ищет по id)
     func update(_ subscription: Subscription) async throws
-
-    /// Удалить подписку
     func delete(_ subscription: Subscription) async throws
+
+    // MARK: Tags
+
+    func fetchTags() async throws -> [Tag]
+    /// Сохраняет тег если его ещё нет (идемпотентно по имени)
+    func saveTagIfNeeded(name: String) async throws -> Tag
+    func deleteTag(_ tag: Tag) async throws
 }
 
 // MARK: - Errors
@@ -33,7 +36,7 @@ enum StorageError: LocalizedError {
     var errorDescription: String? {
         switch self {
         case .notFound:
-            return "Подписка не найдена"
+            return "Запись не найдена"
         case .saveFailed(let e):
             return "Не удалось сохранить: \(e.localizedDescription)"
         case .fetchFailed(let e):

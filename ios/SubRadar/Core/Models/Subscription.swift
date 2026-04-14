@@ -14,22 +14,30 @@ struct Subscription: Identifiable {
     var name: String
     var category: SubscriptionCategory
     var price: Double
-    var currency: String
+    var currency: Currency
     var billingPeriod: BillingPeriod
     var color: String        // hex, e.g. "#1DB954"
     var iconName: String     // SF Symbol name
+    var startDate: Date
     var nextBillingDate: Date
+    var tag: String?         // свободный текст, один тег
+    var url: String?         // ссылка на сервис
+    var imageData: Data?     // опциональная картинка
 
     init(
         id: UUID = UUID(),
         name: String,
-        category: SubscriptionCategory,
+        category: SubscriptionCategory = .other,
         price: Double,
-        currency: String = "₽",
-        billingPeriod: BillingPeriod,
-        color: String,
-        iconName: String,
-        nextBillingDate: Date
+        currency: Currency = .rub,
+        billingPeriod: BillingPeriod = .monthly,
+        color: String = "#6C5CE7",
+        iconName: String = "creditcard",
+        startDate: Date = Date(),
+        nextBillingDate: Date = Calendar.current.date(byAdding: .month, value: 1, to: Date()) ?? Date(),
+        tag: String? = nil,
+        url: String? = nil,
+        imageData: Data? = nil
     ) {
         self.id = id
         self.name = name
@@ -39,15 +47,43 @@ struct Subscription: Identifiable {
         self.billingPeriod = billingPeriod
         self.color = color
         self.iconName = iconName
+        self.startDate = startDate
         self.nextBillingDate = nextBillingDate
+        self.tag = tag
+        self.url = url
+        self.imageData = imageData
     }
 
-    /// Нормализованная стоимость в месяц
+    /// Нормализованная стоимость в месяц (в исходной валюте)
     var monthlyPrice: Double {
         switch billingPeriod {
         case .monthly: return price
         case .yearly:  return price / 12
-        case .weekly:  return price * 4.33
+        case .daily:   return price * 30.44
+        }
+    }
+}
+
+// MARK: - Currency
+
+enum Currency: String, CaseIterable, Codable {
+    case rub = "RUB"
+    case usd = "USD"
+    case eur = "EUR"
+
+    var symbol: String {
+        switch self {
+        case .rub: return "₽"
+        case .usd: return "$"
+        case .eur: return "€"
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .rub: return "Рубль"
+        case .usd: return "Доллар"
+        case .eur: return "Евро"
         }
     }
 }
@@ -57,13 +93,13 @@ struct Subscription: Identifiable {
 enum BillingPeriod: String, CaseIterable, Codable {
     case monthly = "мес"
     case yearly  = "год"
-    case weekly  = "нед"
+    case daily   = "день"
 
     var title: String {
         switch self {
         case .monthly: return "Ежемесячно"
         case .yearly:  return "Ежегодно"
-        case .weekly:  return "Еженедельно"
+        case .daily:   return "Ежедневно"
         }
     }
 }
@@ -77,47 +113,4 @@ enum SubscriptionCategory: String, CaseIterable, Codable {
     case health        = "Здоровье"
     case education     = "Обучение"
     case other         = "Другое"
-}
-
-// MARK: - Mock data
-
-extension Subscription {
-    static let mocks: [Subscription] = [
-        Subscription(
-            name: "Spotify",
-            category: .entertainment,
-            price: 299,
-            billingPeriod: .monthly,
-            color: "#1DB954",
-            iconName: "music.note",
-            nextBillingDate: Date().addingTimeInterval(86400 * 5)
-        ),
-        Subscription(
-            name: "Netflix",
-            category: .entertainment,
-            price: 990,
-            billingPeriod: .monthly,
-            color: "#E50914",
-            iconName: "play.rectangle",
-            nextBillingDate: Date().addingTimeInterval(86400 * 12)
-        ),
-        Subscription(
-            name: "Notion",
-            category: .work,
-            price: 1200,
-            billingPeriod: .monthly,
-            color: "#FFFFFF",
-            iconName: "doc.text",
-            nextBillingDate: Date().addingTimeInterval(86400 * 3)
-        ),
-        Subscription(
-            name: "iCloud+",
-            category: .other,
-            price: 149,
-            billingPeriod: .monthly,
-            color: "#3478F6",
-            iconName: "icloud",
-            nextBillingDate: Date().addingTimeInterval(86400 * 20)
-        ),
-    ]
 }
