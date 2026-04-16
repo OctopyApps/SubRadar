@@ -8,7 +8,6 @@
 import SwiftUI
 import PhotosUI
 
-/// Общая ViewModel с полями формы. Add и Edit наследуются от неё.
 @MainActor
 class SubscriptionFormViewModel: ObservableObject {
 
@@ -16,9 +15,9 @@ class SubscriptionFormViewModel: ObservableObject {
 
     @Published var name: String = ""
     @Published var price: String = ""
-    @Published var currency: Currency = .rub
+    @Published var currency: AppCurrency = .rub
     @Published var billingPeriod: BillingPeriod = .monthly
-    @Published var category: SubscriptionCategory = .other
+    @Published var category: AppCategory = .other
     @Published var startDate: Date = Date()
     @Published var url: String = ""
     @Published var tagInput: String = ""
@@ -66,7 +65,7 @@ class SubscriptionFormViewModel: ObservableObject {
         self.storage = storage
     }
 
-    // MARK: - Shared intents
+    // MARK: - Intents
 
     func loadTags() async {
         do { allTags = try await storage.fetchTags() } catch {}
@@ -109,8 +108,7 @@ class SubscriptionFormViewModel: ObservableObject {
 
     var finalTag: String? {
         selectedTag ?? (tagInput.trimmingCharacters(in: .whitespaces).isEmpty
-            ? nil
-            : tagInput.trimmingCharacters(in: .whitespaces))
+            ? nil : tagInput.trimmingCharacters(in: .whitespaces))
     }
 
     var finalUrl: String? {

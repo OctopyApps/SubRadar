@@ -14,9 +14,9 @@ import SwiftData
 final class SubscriptionEntity {
     @Attribute(.unique) var id: UUID
     var name: String
-    var category: String
+    var category: String        // AppCategory.name
     var price: Double
-    var currency: String
+    var currency: String        // AppCurrency.code
     var billingPeriod: String
     var color: String
     var iconName: String
@@ -25,14 +25,14 @@ final class SubscriptionEntity {
     var createdAt: Date
     var tag: String?
     var url: String?
-    @Attribute(.externalStorage) var imageData: Data?   // большие блобы хранятся отдельно
+    @Attribute(.externalStorage) var imageData: Data?
 
     init(from s: Subscription) {
         self.id              = s.id
         self.name            = s.name
-        self.category        = s.category.rawValue
+        self.category        = s.category.name
         self.price           = s.price
-        self.currency        = s.currency.rawValue
+        self.currency        = s.currency.code
         self.billingPeriod   = s.billingPeriod.rawValue
         self.color           = s.color
         self.iconName        = s.iconName
@@ -46,9 +46,9 @@ final class SubscriptionEntity {
 
     func update(from s: Subscription) {
         name            = s.name
-        category        = s.category.rawValue
+        category        = s.category.name
         price           = s.price
-        currency        = s.currency.rawValue
+        currency        = s.currency.code
         billingPeriod   = s.billingPeriod.rawValue
         color           = s.color
         iconName        = s.iconName
@@ -59,19 +59,18 @@ final class SubscriptionEntity {
         imageData       = s.imageData
     }
 
-    func toDomain() -> Subscription? {
-        guard
-            let cat    = SubscriptionCategory(rawValue: category),
-            let period = BillingPeriod(rawValue: billingPeriod),
-            let cur    = Currency(rawValue: currency)
-        else { return nil }
-
+    /// Передаём уже разрешённые значения, чтобы не касаться @MainActor внутри
+    func toDomain(
+        resolvedCurrency: AppCurrency,
+        resolvedCategory: AppCategory
+    ) -> Subscription? {
+        guard let period = BillingPeriod(rawValue: billingPeriod) else { return nil }
         return Subscription(
             id:              id,
             name:            name,
-            category:        cat,
+            category:        resolvedCategory,
             price:           price,
-            currency:        cur,
+            currency:        resolvedCurrency,
             billingPeriod:   period,
             color:           color,
             iconName:        iconName,
@@ -109,8 +108,11 @@ final class TagEntity {
 final class LocalStorageService: StorageService {
 
     private let container: ModelContainer
+    private weak var appState: AppState?
 
-    init() {
+    init(appState: AppState? = nil) {
+        self.appState = appState
+
         let schema = Schema([SubscriptionEntity.self, TagEntity.self])
         let config = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -119,28 +121,42 @@ final class LocalStorageService: StorageService {
             return
         }
 
-        // Схема изменилась и автомиграция невозможна — удаляем стор и пересоздаём.
-        // В продакшне здесь должен быть MigrationPlan. Пока мы в разработке — это приемлемо.
         Self.destroyStore(config: config)
 
         do {
             container = try ModelContainer(for: schema, configurations: [config])
         } catch {
-            fatalError("LocalStorageService: не удалось создать ModelContainer даже после сброса: \(error)")
+            fatalError("LocalStorageService: не удалось создать ModelContainer: \(error)")
         }
     }
 
     private static func destroyStore(config: ModelConfiguration) {
         let url = config.url
-        let fm = FileManager.default
-        // SwiftData создаёт несколько файлов (.sqlite, .sqlite-shm, .sqlite-wal)
         for suffix in ["", "-shm", "-wal"] {
             let file = suffix.isEmpty ? url : URL(fileURLWithPath: url.path + String(suffix))
-            try? fm.removeItem(at: file)
+            try? FileManager.default.removeItem(at: file)
         }
     }
 
     private var context: ModelContext { container.mainContext }
+
+    // MARK: - Lookup helpers (синхронные, вызываются на MainActor)
+
+    private func resolveCurrency(code: String) -> AppCurrency {
+        if let appState {
+            return appState.currency(forCode: code)
+        }
+        return AppCurrency.allPredefined.first { $0.code == code }
+            ?? AppCurrency(code: code, symbol: code, displayName: code)
+    }
+
+    private func resolveCategory(name: String) -> AppCategory {
+        if let appState {
+            return appState.category(forName: name)
+        }
+        return AppCategory.defaults.first { $0.name == name }
+            ?? AppCategory(name: name, icon: "ellipsis.circle")
+    }
 
     // MARK: - Subscriptions
 
@@ -149,7 +165,13 @@ final class LocalStorageService: StorageService {
             sortBy: [SortDescriptor(\.createdAt, order: .reverse)]
         )
         do {
-            return try context.fetch(descriptor).compactMap { $0.toDomain() }
+            let entities = try context.fetch(descriptor)
+            return entities.compactMap { entity in
+                entity.toDomain(
+                    resolvedCurrency: resolveCurrency(code: entity.currency),
+                    resolvedCategory: resolveCategory(name: entity.category)
+                )
+            }
         } catch {
             throw StorageError.fetchFailed(underlying: error)
         }
@@ -158,7 +180,6 @@ final class LocalStorageService: StorageService {
     func save(_ subscription: Subscription) async throws {
         context.insert(SubscriptionEntity(from: subscription))
         try saveContext()
-        // Сохраняем тег автоматически если указан
         if let tag = subscription.tag {
             _ = try await saveTagIfNeeded(name: tag)
         }
@@ -166,12 +187,8 @@ final class LocalStorageService: StorageService {
 
     func update(_ subscription: Subscription) async throws {
         let id = subscription.id
-        let descriptor = FetchDescriptor<SubscriptionEntity>(
-            predicate: #Predicate { $0.id == id }
-        )
-        guard let entity = try context.fetch(descriptor).first else {
-            throw StorageError.notFound
-        }
+        let descriptor = FetchDescriptor<SubscriptionEntity>(predicate: #Predicate { $0.id == id })
+        guard let entity = try context.fetch(descriptor).first else { throw StorageError.notFound }
         entity.update(from: subscription)
         try saveContext()
         if let tag = subscription.tag {
@@ -181,12 +198,8 @@ final class LocalStorageService: StorageService {
 
     func delete(_ subscription: Subscription) async throws {
         let id = subscription.id
-        let descriptor = FetchDescriptor<SubscriptionEntity>(
-            predicate: #Predicate { $0.id == id }
-        )
-        guard let entity = try context.fetch(descriptor).first else {
-            throw StorageError.notFound
-        }
+        let descriptor = FetchDescriptor<SubscriptionEntity>(predicate: #Predicate { $0.id == id })
+        guard let entity = try context.fetch(descriptor).first else { throw StorageError.notFound }
         context.delete(entity)
         try saveContext()
     }
@@ -194,9 +207,7 @@ final class LocalStorageService: StorageService {
     // MARK: - Tags
 
     func fetchTags() async throws -> [Tag] {
-        let descriptor = FetchDescriptor<TagEntity>(
-            sortBy: [SortDescriptor(\.name)]
-        )
+        let descriptor = FetchDescriptor<TagEntity>(sortBy: [SortDescriptor(\.name)])
         do {
             return try context.fetch(descriptor).map { $0.toDomain() }
         } catch {
@@ -206,27 +217,18 @@ final class LocalStorageService: StorageService {
 
     func saveTagIfNeeded(name: String) async throws -> Tag {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
-        let descriptor = FetchDescriptor<TagEntity>(
-            predicate: #Predicate { $0.name == trimmed }
-        )
-        if let existing = try context.fetch(descriptor).first {
-            return existing.toDomain()
-        }
+        let descriptor = FetchDescriptor<TagEntity>(predicate: #Predicate { $0.name == trimmed })
+        if let existing = try context.fetch(descriptor).first { return existing.toDomain() }
         let tag = Tag(name: trimmed)
-        let entity = TagEntity(from: tag)
-        context.insert(entity)
+        context.insert(TagEntity(from: tag))
         try saveContext()
         return tag
     }
 
     func deleteTag(_ tag: Tag) async throws {
         let id = tag.id
-        let descriptor = FetchDescriptor<TagEntity>(
-            predicate: #Predicate { $0.id == id }
-        )
-        guard let entity = try context.fetch(descriptor).first else {
-            throw StorageError.notFound
-        }
+        let descriptor = FetchDescriptor<TagEntity>(predicate: #Predicate { $0.id == id })
+        guard let entity = try context.fetch(descriptor).first else { throw StorageError.notFound }
         context.delete(entity)
         try saveContext()
     }
@@ -234,10 +236,6 @@ final class LocalStorageService: StorageService {
     // MARK: - Private
 
     private func saveContext() throws {
-        do {
-            try context.save()
-        } catch {
-            throw StorageError.saveFailed(underlying: error)
-        }
+        do { try context.save() } catch { throw StorageError.saveFailed(underlying: error) }
     }
 }

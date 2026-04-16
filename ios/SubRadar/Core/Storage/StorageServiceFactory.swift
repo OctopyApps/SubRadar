@@ -7,16 +7,14 @@
 
 import Foundation
 
-/// Создаёт нужную реализацию StorageService в зависимости от конфигурации приложения.
-/// ViewModel и View не знают про конкретные классы — только про протокол.
-@MainActor
 enum StorageServiceFactory {
-    static func make(for configuration: AppConfiguration) -> any StorageService {
-        switch configuration.storageMode {
+    @MainActor
+    static func make(for config: AppConfiguration, appState: AppState? = nil) -> any StorageService {
+        switch config.storageMode {
         case .local:
-            return LocalStorageService()
+            return LocalStorageService(appState: appState)
         case .shared, .selfHosted:
-            return RemoteStorageService(serverConfiguration: configuration.serverConfiguration)
+            return RemoteStorageService(serverConfiguration: config.serverConfiguration)
         }
     }
 }
