@@ -93,6 +93,14 @@ struct SubscriptionsView: View {
                 viewModel.subscriptionAdded(subscription)
             }
         }
+        .sheet(item: $viewModel.editingSubscription) { subscription in
+            EditSubscriptionView(
+                subscription: subscription,
+                storage: viewModel.storage
+            ) { updated in
+                viewModel.subscriptionUpdated(updated)
+            }
+        }
         .alert("Ошибка", isPresented: .constant(viewModel.error != nil), presenting: viewModel.error) { _ in
             Button("OK") { viewModel.error = nil }
         } message: { e in
@@ -219,9 +227,12 @@ struct SubscriptionsView: View {
     private var subscriptionCards: some View {
         LazyVStack(spacing: 12) {
             ForEach(viewModel.filtered) { sub in
-                SubscriptionCard(subscription: sub) {
-                    Task { await viewModel.delete(sub) }
-                }
+                SubscriptionCard(
+                    subscription: sub,
+                    onEdit:      { viewModel.openEdit(sub) },
+                    onDuplicate: { Task { await viewModel.duplicate(sub) } },
+                    onDelete:    { Task { await viewModel.delete(sub) } }
+                )
             }
         }
     }
@@ -371,6 +382,8 @@ private struct CategoryPill: View {
 
 private struct SubscriptionCard: View {
     let subscription: Subscription
+    let onEdit: () -> Void
+    let onDuplicate: () -> Void
     let onDelete: () -> Void
     @State private var isPressed = false
 
@@ -469,6 +482,18 @@ private struct SubscriptionCard: View {
                 .onChanged { _ in isPressed = true }
                 .onEnded { _ in isPressed = false }
         )
+        .contextMenu {
+            Button(action: onEdit) {
+                Label("Изменить", systemImage: "pencil")
+            }
+            Button(action: onDuplicate) {
+                Label("Дублировать", systemImage: "plus.square.on.square")
+            }
+            Divider()
+            Button(role: .destructive, action: onDelete) {
+                Label("Удалить", systemImage: "trash")
+            }
+        }
         .swipeActions(edge: .trailing, allowsFullSwipe: true) {
             Button(role: .destructive, action: onDelete) {
                 Label("Удалить", systemImage: "trash")

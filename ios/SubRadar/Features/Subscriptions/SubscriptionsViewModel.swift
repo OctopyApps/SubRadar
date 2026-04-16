@@ -16,6 +16,7 @@ final class SubscriptionsViewModel: ObservableObject {
     @Published var selectedCategory: SubscriptionCategory = .all
     @Published var isMenuOpen = false
     @Published var isAddingSubscription = false
+    @Published var editingSubscription: Subscription? = nil
     @Published var isLoading = false
     @Published var error: StorageError?
 
@@ -113,6 +114,34 @@ final class SubscriptionsViewModel: ObservableObject {
         }
     }
 
+    func subscriptionUpdated(_ subscription: Subscription) {
+        if let idx = subscriptions.firstIndex(where: { $0.id == subscription.id }) {
+            subscriptions[idx] = subscription
+        }
+    }
+
+    func duplicate(_ subscription: Subscription) async {
+        var copy = subscription
+        copy = Subscription(
+            name:            subscription.name + " (копия)",
+            category:        subscription.category,
+            price:           subscription.price,
+            currency:        subscription.currency,
+            billingPeriod:   subscription.billingPeriod,
+            startDate:       subscription.startDate,
+            nextBillingDate: subscription.nextBillingDate,
+            tag:             subscription.tag,
+            url:             subscription.url,
+            imageData:       subscription.imageData
+        )
+        do {
+            try await storage.save(copy)
+            subscriptions.insert(copy, at: 0)
+        } catch let e as StorageError { error = e
+        } catch {}
+    }
+
+    func openEdit(_ subscription: Subscription) { editingSubscription = subscription }
     func openMenu() { isMenuOpen = true }
     func openAddSubscription() { isAddingSubscription = true }
 }

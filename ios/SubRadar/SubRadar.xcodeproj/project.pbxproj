@@ -52,6 +52,10 @@
 				ServerSetup/ServerSetupViewModel.swift,
 				Subscriptions/Add/AddSubscriptionView.swift,
 				Subscriptions/Add/AddSubscriptionViewModel.swift,
+				Subscriptions/Edit/EditSubscriptionView.swift,
+				Subscriptions/Edit/EditSubscriptionViewModel.swift,
+				Subscriptions/Form/SubscriptionFormView.swift,
+				Subscriptions/Form/SubscriptionFormViewModel.swift,
 				Subscriptions/SubscriptionsView.swift,
 				Subscriptions/SubscriptionsViewModel.swift,
 			);
