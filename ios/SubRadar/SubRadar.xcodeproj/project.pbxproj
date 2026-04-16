@@ -65,10 +65,13 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Models/AppConfiguration.swift,
+				Models/ServerConfiguration.swift,
 				Models/StorageMode.swift,
 				Models/Subscription.swift,
 				Models/Tag.swift,
+				Storage/KeychainService.swift,
 				Storage/LocalStorageService.swift,
+				Storage/RemoteStorageService.swift,
 				Storage/StorageService.swift,
 				Storage/StorageServiceFactory.swift,
 				Storage/UserDefaultsService.swift,

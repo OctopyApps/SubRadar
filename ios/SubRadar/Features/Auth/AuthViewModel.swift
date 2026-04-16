@@ -49,8 +49,8 @@ final class AuthViewModel: ObservableObject {
     // MARK: - Private
 
     private func authRequest(email: String, password: String) async throws -> String? {
-        // Базовый URL будет браться из конфигурации сервера — пока хардкод
-        guard let url = URL(string: "https://api.subradar.io/auth") else {
+        let serverConfig = UserDefaultsService.shared.configuration?.serverConfiguration ?? .shared()
+        guard let url = serverConfig.authURL else {
             throw AuthError.badURL
         }
 

@@ -51,14 +51,17 @@ final class AppState: ObservableObject {
         }
     }
 
-    func completeAuth(mode: StorageMode, token: String? = nil, serverURL: String? = nil) {
+    func completeAuth(mode: StorageMode, token: String? = nil, serverConfiguration: ServerConfiguration = .shared()) {
+        if let token {
+            KeychainService.shared.save(token)
+        }
         switch mode {
         case .local:
             defaults.configuration = .local()
         case .shared:
-            defaults.configuration = .shared(token: token)
+            defaults.configuration = .shared()
         case .selfHosted:
-            defaults.configuration = .selfHosted(token: token, serverURL: serverURL)
+            defaults.configuration = .selfHosted(serverConfiguration: serverConfiguration)
         }
         withAnimation(.easeInOut(duration: 0.4)) {
             currentScreen = .main
@@ -66,6 +69,7 @@ final class AppState: ObservableObject {
     }
 
     func logout() {
+        KeychainService.shared.deleteToken()
         defaults.configuration = nil
         withAnimation(.easeInOut(duration: 0.4)) {
             currentScreen = .onboarding

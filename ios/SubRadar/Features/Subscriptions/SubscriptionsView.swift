@@ -23,9 +23,8 @@ struct SubscriptionsView: View {
     @StateObject private var viewModel: SubscriptionsViewModel
 
     init() {
-        let storage = StorageServiceFactory.make(
-            for: UserDefaultsService.shared.configuration?.storageMode ?? .local
-        )
+        let config = UserDefaultsService.shared.configuration ?? .local()
+        let storage = StorageServiceFactory.make(for: config)
         _viewModel = StateObject(wrappedValue: SubscriptionsViewModel(storage: storage))
     }
 

@@ -7,18 +7,16 @@
 
 import Foundation
 
-/// Создаёт нужную реализацию StorageService в зависимости от режима хранения.
+/// Создаёт нужную реализацию StorageService в зависимости от конфигурации приложения.
 /// ViewModel и View не знают про конкретные классы — только про протокол.
 @MainActor
 enum StorageServiceFactory {
-    static func make(for mode: StorageMode) -> any StorageService {
-        switch mode {
+    static func make(for configuration: AppConfiguration) -> any StorageService {
+        switch configuration.storageMode {
         case .local:
             return LocalStorageService()
         case .shared, .selfHosted:
-            // TODO: вернуть RemoteStorageService когда будет готов бэкенд
-            // Пока fallback на локальное хранилище чтобы не крашиться
-            return LocalStorageService()
+            return RemoteStorageService(serverConfiguration: configuration.serverConfiguration)
         }
     }
 }
