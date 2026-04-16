@@ -9,7 +9,6 @@ import SwiftUI
 import PhotosUI
 
 /// Общая форма для добавления и редактирования подписки.
-/// Принимает конкретную ViewModel (Add или Edit) через протокол ObservableObject.
 struct SubscriptionFormView<ViewModel: SubscriptionFormViewModel>: View {
     @Environment(\.dismiss) private var dismiss
     @ObservedObject var viewModel: ViewModel
@@ -20,7 +19,7 @@ struct SubscriptionFormView<ViewModel: SubscriptionFormViewModel>: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "#0A0A0F").ignoresSafeArea()
+            Color.srBackground.ignoresSafeArea()
 
             VStack(spacing: 0) {
                 header
@@ -61,9 +60,9 @@ struct SubscriptionFormView<ViewModel: SubscriptionFormViewModel>: View {
             Button(action: { dismiss() }) {
                 Image(systemName: "xmark")
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(Color(hex: "#55558A"))
+                    .foregroundColor(.srTextSecondary)
                     .frame(width: 36, height: 36)
-                    .background(Circle().fill(Color(hex: "#13131F")))
+                    .background(Circle().fill(Color.srSurface2))
             }
             .buttonStyle(.plain)
 
@@ -71,7 +70,7 @@ struct SubscriptionFormView<ViewModel: SubscriptionFormViewModel>: View {
 
             Text(title)
                 .font(.system(size: 17, weight: .semibold))
-                .foregroundColor(Color(hex: "#EEEEFF"))
+                .foregroundColor(.srTextPrimary)
                 .kerning(-0.3)
 
             Spacer()
@@ -89,12 +88,12 @@ struct SubscriptionFormView<ViewModel: SubscriptionFormViewModel>: View {
         PhotosPicker(selection: $viewModel.selectedPhotoItem, matching: .images) {
             ZStack {
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(hex: "#13131F"))
+                    .fill(Color.srSurface2)
                     .frame(height: 100)
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
                             .strokeBorder(style: StrokeStyle(lineWidth: 1, dash: [6]))
-                            .foregroundColor(Color(hex: "#2D2D45"))
+                            .foregroundColor(Color.srBorder)
                     )
 
                 if let data = viewModel.imageData, let uiImage = UIImage(data: data) {
@@ -107,10 +106,10 @@ struct SubscriptionFormView<ViewModel: SubscriptionFormViewModel>: View {
                     VStack(spacing: 8) {
                         Image(systemName: "photo.badge.plus")
                             .font(.system(size: 24, weight: .medium))
-                            .foregroundColor(Color(hex: "#44446A"))
+                            .foregroundColor(.srTextTertiary)
                         Text("Добавить изображение")
                             .font(.system(size: 13))
-                            .foregroundColor(Color(hex: "#44446A"))
+                            .foregroundColor(.srTextTertiary)
                     }
                 }
             }
@@ -125,8 +124,8 @@ struct SubscriptionFormView<ViewModel: SubscriptionFormViewModel>: View {
             FormField(label: "Название", isRequired: true) {
                 TextField("Например: Netflix", text: $viewModel.name)
                     .font(.system(size: 16))
-                    .foregroundColor(Color(hex: "#EEEEFF"))
-                    .tint(Color(hex: "#6C5CE7"))
+                    .foregroundColor(.srTextPrimary)
+                    .tint(.srAccent)
             }
         }
     }
@@ -138,12 +137,12 @@ struct SubscriptionFormView<ViewModel: SubscriptionFormViewModel>: View {
             FormField(label: "Сумма", isRequired: true) {
                 TextField("0", text: $viewModel.price)
                     .font(.system(size: 16))
-                    .foregroundColor(Color(hex: "#EEEEFF"))
-                    .tint(Color(hex: "#6C5CE7"))
+                    .foregroundColor(.srTextPrimary)
+                    .tint(.srAccent)
                     .keyboardType(.decimalPad)
             }
 
-            Divider().background(Color(hex: "#1E1E35"))
+            Divider().background(Color.srBorder)
 
             FormField(label: "Валюта", isRequired: true) {
                 HStack(spacing: 8) {
@@ -156,7 +155,7 @@ struct SubscriptionFormView<ViewModel: SubscriptionFormViewModel>: View {
                 }
             }
 
-            Divider().background(Color(hex: "#1E1E35"))
+            Divider().background(Color.srBorder)
 
             FormField(label: "Периодичность", isRequired: true) {
                 HStack(spacing: 8) {
@@ -169,7 +168,7 @@ struct SubscriptionFormView<ViewModel: SubscriptionFormViewModel>: View {
                 }
             }
 
-            Divider().background(Color(hex: "#1E1E35"))
+            Divider().background(Color.srBorder)
 
             FormField(label: "Начало", isRequired: false) {
                 DatePicker(
@@ -179,8 +178,7 @@ struct SubscriptionFormView<ViewModel: SubscriptionFormViewModel>: View {
                     displayedComponents: .date
                 )
                 .labelsHidden()
-                .tint(Color(hex: "#6C5CE7"))
-                .colorScheme(.dark)
+                .tint(.srAccent)
             }
         }
     }
@@ -214,8 +212,8 @@ struct SubscriptionFormView<ViewModel: SubscriptionFormViewModel>: View {
                 FormField(label: "Введите тег", isRequired: false) {
                     TextField("Личное, Бизнес…", text: $viewModel.tagInput)
                         .font(.system(size: 16))
-                        .foregroundColor(Color(hex: "#EEEEFF"))
-                        .tint(Color(hex: "#6C5CE7"))
+                        .foregroundColor(.srTextPrimary)
+                        .tint(.srAccent)
                         .onChange(of: viewModel.tagInput) { _, _ in
                             viewModel.selectedTag = nil
                         }
@@ -242,19 +240,19 @@ struct SubscriptionFormView<ViewModel: SubscriptionFormViewModel>: View {
                     HStack(spacing: 8) {
                         Image(systemName: "plus.circle.fill")
                             .font(.system(size: 14))
-                            .foregroundColor(Color(hex: "#6C5CE7"))
+                            .foregroundColor(.srAccent)
                         Text("Создать тег «\(viewModel.tagInput.trimmingCharacters(in: .whitespaces))»")
                             .font(.system(size: 14))
-                            .foregroundColor(Color(hex: "#6C5CE7"))
+                            .foregroundColor(.srAccent)
                     }
                     .padding(.horizontal, 14)
                     .padding(.vertical, 9)
                     .background(
                         RoundedRectangle(cornerRadius: 12)
-                            .fill(Color(hex: "#6C5CE7").opacity(0.1))
+                            .fill(Color.srAccent.opacity(0.1))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 12)
-                                    .stroke(Color(hex: "#6C5CE7").opacity(0.3), lineWidth: 1)
+                                    .stroke(Color.srAccent.opacity(0.3), lineWidth: 1)
                             )
                     )
                 }
@@ -265,10 +263,10 @@ struct SubscriptionFormView<ViewModel: SubscriptionFormViewModel>: View {
                 HStack(spacing: 6) {
                     Image(systemName: "checkmark.circle.fill")
                         .font(.system(size: 13))
-                        .foregroundColor(Color(hex: "#2DD4BF"))
+                        .foregroundColor(.srTeal)
                     Text("Тег: \(tag)")
                         .font(.system(size: 13))
-                        .foregroundColor(Color(hex: "#2DD4BF"))
+                        .foregroundColor(.srTeal)
                 }
             }
         }
@@ -281,8 +279,8 @@ struct SubscriptionFormView<ViewModel: SubscriptionFormViewModel>: View {
             FormField(label: "Ссылка", isRequired: false) {
                 TextField("https://", text: $viewModel.url)
                     .font(.system(size: 16))
-                    .foregroundColor(Color(hex: "#EEEEFF"))
-                    .tint(Color(hex: "#6C5CE7"))
+                    .foregroundColor(.srTextPrimary)
+                    .tint(.srAccent)
                     .keyboardType(.URL)
                     .autocorrectionDisabled()
                     .textInputAutocapitalization(.never)
@@ -298,15 +296,7 @@ struct SubscriptionFormView<ViewModel: SubscriptionFormViewModel>: View {
         }) {
             ZStack {
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(
-                        viewModel.isValid
-                        ? LinearGradient(
-                            colors: [Color(hex: "#6C5CE7"), Color(hex: "#8B7FF5")],
-                            startPoint: .leading, endPoint: .trailing)
-                        : LinearGradient(
-                            colors: [Color(hex: "#2D2D45"), Color(hex: "#2D2D45")],
-                            startPoint: .leading, endPoint: .trailing)
-                    )
+                    .fill(LinearGradient.srButtonGradient(isEnabled: viewModel.isValid))
                     .frame(height: 56)
 
                 if viewModel.isSaving {
@@ -314,7 +304,7 @@ struct SubscriptionFormView<ViewModel: SubscriptionFormViewModel>: View {
                 } else {
                     Text(buttonLabel)
                         .font(.system(size: 17, weight: .semibold))
-                        .foregroundColor(viewModel.isValid ? .white : Color(hex: "#44446A"))
+                        .foregroundColor(viewModel.isValid ? .white : .srTextTertiary)
                 }
             }
         }
@@ -324,7 +314,7 @@ struct SubscriptionFormView<ViewModel: SubscriptionFormViewModel>: View {
         .padding(.bottom, 36)
         .background(
             Rectangle()
-                .fill(Color(hex: "#0A0A0F").opacity(0.95))
+                .fill(Color.srBackground.opacity(0.95))
                 .ignoresSafeArea(edges: .bottom)
         )
     }
@@ -339,10 +329,10 @@ struct FormCard<Content: View>: View {
         VStack(spacing: 0) { content }
             .background(
                 RoundedRectangle(cornerRadius: 16)
-                    .fill(Color(hex: "#13131F"))
+                    .fill(Color.srSurface2)
                     .overlay(
                         RoundedRectangle(cornerRadius: 16)
-                            .stroke(Color(hex: "#2D2D45"), lineWidth: 1)
+                            .stroke(Color.srBorder, lineWidth: 1)
                     )
             )
     }
@@ -358,11 +348,11 @@ struct FormField<Content: View>: View {
             HStack(spacing: 3) {
                 Text(label)
                     .font(.system(size: 14))
-                    .foregroundColor(Color(hex: "#55558A"))
+                    .foregroundColor(.srTextSecondary)
                 if isRequired {
                     Text("*")
                         .font(.system(size: 14))
-                        .foregroundColor(Color(hex: "#6C5CE7"))
+                        .foregroundColor(.srAccent)
                 }
             }
             .frame(width: 100, alignment: .leading)
@@ -380,7 +370,7 @@ struct SectionLabel: View {
     var body: some View {
         Text(text)
             .font(.system(size: 13, weight: .medium))
-            .foregroundColor(Color(hex: "#55558A"))
+            .foregroundColor(.srTextSecondary)
             .padding(.leading, 4)
     }
 }
@@ -394,14 +384,14 @@ struct CurrencyChip: View {
         Button(action: action) {
             Text("\(currency.symbol) \(currency.rawValue)")
                 .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
-                .foregroundColor(isSelected ? Color(hex: "#EEEEFF") : Color(hex: "#55558A"))
+                .foregroundColor(isSelected ? .white : .srTextSecondary)
                 .lineLimit(1)
                 .fixedSize()
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(isSelected ? Color(hex: "#6C5CE7") : Color(hex: "#1A1A2E"))
+                        .fill(isSelected ? Color.srAccent : Color.srSurface)
                 )
         }
         .buttonStyle(.plain)
@@ -417,12 +407,12 @@ struct PeriodChip: View {
         Button(action: action) {
             Text(period.rawValue)
                 .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
-                .foregroundColor(isSelected ? Color(hex: "#EEEEFF") : Color(hex: "#55558A"))
+                .foregroundColor(isSelected ? .white : .srTextSecondary)
                 .padding(.horizontal, 12)
                 .padding(.vertical, 6)
                 .background(
                     RoundedRectangle(cornerRadius: 10)
-                        .fill(isSelected ? Color(hex: "#6C5CE7") : Color(hex: "#1A1A2E"))
+                        .fill(isSelected ? Color.srAccent : Color.srSurface)
                 )
         }
         .buttonStyle(.plain)
@@ -438,15 +428,15 @@ struct CategoryChip: View {
         Button(action: action) {
             Text(title)
                 .font(.system(size: 13, weight: isSelected ? .semibold : .regular))
-                .foregroundColor(isSelected ? Color(hex: "#EEEEFF") : Color(hex: "#55558A"))
+                .foregroundColor(isSelected ? .white : .srTextSecondary)
                 .padding(.horizontal, 14)
                 .padding(.vertical, 8)
                 .background(
                     RoundedRectangle(cornerRadius: 20)
-                        .fill(isSelected ? Color(hex: "#6C5CE7") : Color(hex: "#13131F"))
+                        .fill(isSelected ? Color.srAccent : Color.srSurface2)
                         .overlay(
                             RoundedRectangle(cornerRadius: 20)
-                                .stroke(isSelected ? Color.clear : Color(hex: "#2D2D45"), lineWidth: 1)
+                                .stroke(isSelected ? Color.clear : Color.srBorder, lineWidth: 1)
                         )
                 )
         }
@@ -463,19 +453,19 @@ struct TagSuggestionChip: View {
             HStack(spacing: 5) {
                 Image(systemName: "tag.fill")
                     .font(.system(size: 10))
-                    .foregroundColor(Color(hex: "#A29BFE"))
+                    .foregroundColor(.srAccentLight)
                 Text(name)
                     .font(.system(size: 13))
-                    .foregroundColor(Color(hex: "#A29BFE"))
+                    .foregroundColor(.srAccentLight)
             }
             .padding(.horizontal, 12)
             .padding(.vertical, 7)
             .background(
                 RoundedRectangle(cornerRadius: 10)
-                    .fill(Color(hex: "#A29BFE").opacity(0.1))
+                    .fill(Color.srAccentLight.opacity(0.1))
                     .overlay(
                         RoundedRectangle(cornerRadius: 10)
-                            .stroke(Color(hex: "#A29BFE").opacity(0.25), lineWidth: 1)
+                            .stroke(Color.srAccentLight.opacity(0.25), lineWidth: 1)
                     )
             )
         }

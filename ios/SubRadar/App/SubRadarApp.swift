@@ -38,12 +38,12 @@ struct SubRadarApp: App {
             }
       
             #if DEBUG
-                Button("Сбросить (debug)") {
-                    appState.resetForDebug()
-                }
-                .font(.system(size: 12))
-                .foregroundColor(Color(hex: "#000000"))
-                .padding(.top, 8)
+            Button("Сбросить (debug)") {
+                appState.resetForDebug()
+            }
+            .font(.system(size: 12))
+            .foregroundColor(.srTextTertiary)
+            .padding(.top, 8)
             #endif
         }
         

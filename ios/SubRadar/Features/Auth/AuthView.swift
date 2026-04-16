@@ -12,7 +12,7 @@ struct AuthView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "#0A0A0F").ignoresSafeArea()
+            Color.srBackground.ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 0) {
@@ -30,7 +30,7 @@ struct AuthView: View {
                                 Text("Назад")
                                     .font(.system(size: 16))
                             }
-                            .foregroundColor(Color(hex: "#7777AA"))
+                            .foregroundColor(.srTextSecondary)
                         }
                         Spacer()
                     }
@@ -42,12 +42,12 @@ struct AuthView: View {
                     VStack(spacing: 8) {
                         Text("Вход")
                             .font(.system(size: 28, weight: .semibold))
-                            .foregroundColor(Color(hex: "#EEEEFF"))
+                            .foregroundColor(.srTextPrimary)
                             .kerning(-0.6)
 
                         Text(mode == .shared ? "Общий сервер" : "Свой сервер")
                             .font(.system(size: 15))
-                            .foregroundColor(Color(hex: "#6666AA"))
+                            .foregroundColor(.srTextSecondary)
                     }
                     .padding(.bottom, 40)
 
@@ -73,7 +73,7 @@ struct AuthView: View {
                     if let error = viewModel.errorMessage {
                         Text(error)
                             .font(.system(size: 13))
-                            .foregroundColor(Color(hex: "#FF6B6B"))
+                            .foregroundColor(.srDanger)
                             .padding(.horizontal, 24)
                             .padding(.bottom, 12)
                     }
@@ -95,7 +95,7 @@ struct AuthView: View {
                         .frame(height: 52)
                         .background(
                             RoundedRectangle(cornerRadius: 14)
-                                .fill(Color(hex: "#6C5CE7"))
+                                .fill(Color.srAccent)
                         )
                     }
                     .padding(.horizontal, 24)
@@ -106,13 +106,13 @@ struct AuthView: View {
                     HStack(spacing: 4) {
                         Text("Нет аккаунта?")
                             .font(.system(size: 14))
-                            .foregroundColor(Color(hex: "#44446A"))
+                            .foregroundColor(.srTextTertiary)
                         Button {
                             viewModel.showRegister = true
                         } label: {
                             Text("Зарегистрироваться")
                                 .font(.system(size: 14, weight: .medium))
-                                .foregroundColor(Color(hex: "#A29BFE"))
+                                .foregroundColor(.srAccentLight)
                         }
                     }
                     .padding(.bottom, 24)
@@ -120,13 +120,13 @@ struct AuthView: View {
                     // Divider
                     HStack(spacing: 12) {
                         Rectangle()
-                            .fill(Color(hex: "#2D2D45"))
+                            .fill(Color.srBorder)
                             .frame(height: 1)
                         Text("или")
                             .font(.system(size: 13))
-                            .foregroundColor(Color(hex: "#44446A"))
+                            .foregroundColor(.srTextTertiary)
                         Rectangle()
-                            .fill(Color(hex: "#2D2D45"))
+                            .fill(Color.srBorder)
                             .frame(height: 1)
                     }
                     .padding(.horizontal, 24)
@@ -154,7 +154,6 @@ struct AuthView: View {
                 }
             }
         }
-        // .sheet живёт здесь — на уровне ZStack, где виден viewModel
         .sheet(isPresented: $viewModel.showRegister) {
             RegisterView(mode: mode)
                 .environmentObject(appState)
@@ -181,27 +180,27 @@ private struct SocialAuthButton: View {
                             .frame(width: 20, height: 20)
                         Text("G")
                             .font(.system(size: 13, weight: .bold))
-                            .foregroundColor(Color(hex: "#4285F4"))
+                            .foregroundColor(.srLink)
                     }
                 } else if isSystemIcon {
                     Image(systemName: icon)
                         .font(.system(size: 18, weight: .medium))
-                        .foregroundColor(Color(hex: "#DDDDF5"))
+                        .foregroundColor(.srTextPrimary)
                         .frame(width: 20, height: 20)
                 }
 
                 Text(label)
                     .font(.system(size: 16, weight: .medium))
-                    .foregroundColor(Color(hex: "#DDDDF5"))
+                    .foregroundColor(.srTextPrimary)
             }
             .frame(maxWidth: .infinity)
             .frame(height: 52)
             .background(
                 RoundedRectangle(cornerRadius: 14)
-                    .fill(Color(hex: "#13131F"))
+                    .fill(Color.srSurface2)
                     .overlay(
                         RoundedRectangle(cornerRadius: 14)
-                            .stroke(Color(hex: "#2D2D45"), lineWidth: 1)
+                            .stroke(Color.srBorder, lineWidth: 1)
                     )
             )
         }
