@@ -96,6 +96,9 @@ struct SubscriptionsView: View {
             }
             .environmentObject(appState)
         }
+        .sheet(isPresented: $viewModel.isCalendarOpen) {
+            CalendarView().environmentObject(appState)
+        }
         .alert("Ошибка", isPresented: .constant(viewModel.error != nil), presenting: viewModel.error) { _ in
             Button("OK") { viewModel.error = nil }
         } message: { e in Text(e.localizedDescription) }
@@ -235,7 +238,7 @@ struct SubscriptionsView: View {
 
     private var tabBar: some View {
         HStack(alignment: .center) {
-            TabBarButton(iconName: "calendar", label: "Календарь") {}
+            TabBarButton(iconName: "calendar", label: "Календарь") { viewModel.isCalendarOpen = true }
             Spacer()
             AddButton { viewModel.openAddSubscription() }
             Spacer()
@@ -430,6 +433,7 @@ struct MenuSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var showSettings = false
     @State private var showNotifications = false
+    @State private var showStorageMode = false
 
     var body: some View {
         ZStack {
@@ -440,10 +444,10 @@ struct MenuSheet: View {
                 Text("Меню").font(.system(size: 22, weight: .semibold)).foregroundColor(.srTextPrimary)
                     .kerning(-0.5).padding(.horizontal, 24).padding(.bottom, 24)
                 VStack(spacing: 4) {
-                    MenuRow(icon: "gear",                        label: "Настройки")        { showSettings = true }
-                    MenuRow(icon: "bell",                        label: "Уведомления")       { showNotifications = true }
-                    MenuRow(icon: "arrow.triangle.2.circlepath", label: "Режим хранения")    {}
-                    MenuRow(icon: "questionmark.circle",         label: "Помощь")            {}
+                    MenuRow(icon: "gear",                        label: "Настройки")     { showSettings = true }
+                    MenuRow(icon: "bell",                        label: "Уведомления")    { showNotifications = true }
+                    MenuRow(icon: "arrow.triangle.2.circlepath", label: "Режим хранения") { showStorageMode = true }
+                    MenuRow(icon: "questionmark.circle",         label: "Помощь")         {}
                 }
                 .padding(.horizontal, 16)
                 Spacer()
@@ -458,6 +462,9 @@ struct MenuSheet: View {
         .sheet(isPresented: $showNotifications) {
             NotificationsView(subscriptions: [])
                 .environmentObject(appState)
+        }
+        .sheet(isPresented: $showStorageMode) {
+            StorageModeSettingsView().environmentObject(appState)
         }
     }
 }

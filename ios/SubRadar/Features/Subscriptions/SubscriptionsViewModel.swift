@@ -20,6 +20,7 @@ final class SubscriptionsViewModel: ObservableObject {
     @Published var subscriptions: [Subscription] = []
     @Published var selectedCategory: AppCategory = .all
     @Published var isMenuOpen = false
+    @Published var isCalendarOpen = false
     @Published var isAddingSubscription = false
     @Published var editingSubscription: Subscription? = nil
     @Published var isLoading = false

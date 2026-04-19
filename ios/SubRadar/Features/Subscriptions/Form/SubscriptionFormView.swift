@@ -122,12 +122,27 @@ struct SubscriptionFormView<ViewModel: SubscriptionFormViewModel>: View {
 
     private var paymentSection: some View {
         FormCard {
-            FormField(label: "Сумма", isRequired: true) {
-                TextField("0", text: $viewModel.price)
-                    .font(.system(size: 16))
-                    .foregroundColor(.srTextPrimary)
-                    .tint(.srAccent)
-                    .keyboardType(.decimalPad)
+            // СТАЛО
+            VStack(alignment: .trailing, spacing: 0) {
+                FormField(label: "Сумма", isRequired: true) {
+                    TextField("0", text: $viewModel.price)
+                        .font(.system(size: 16))
+                        .foregroundColor(viewModel.isPriceInvalid ? .srDanger : .srTextPrimary)
+                        .tint(.srAccent)
+                        .keyboardType(.decimalPad)
+                        .onChange(of: viewModel.price) { _, new in
+                            // Оставляем только цифры, одну точку и одну запятую
+                            let filtered = new.filter { $0.isNumber || $0 == "." || $0 == "," }
+                            if filtered != new { viewModel.price = filtered }
+                        }
+                }
+                if viewModel.isPriceInvalid {
+                    Text("Некорректная сумма")
+                        .font(.system(size: 12))
+                        .foregroundColor(.srDanger)
+                        .padding(.horizontal, 16)
+                        .padding(.bottom, 8)
+                }
             }
 
             Divider().background(Color.srBorder)

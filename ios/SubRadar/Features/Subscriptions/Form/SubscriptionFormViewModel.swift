@@ -64,6 +64,10 @@ class SubscriptionFormViewModel: ObservableObject {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         return formatter.number(from: trimmed)?.doubleValue
     }
+    
+    var isPriceInvalid: Bool {
+        !price.trimmingCharacters(in: .whitespaces).isEmpty && parsedPrice == nil
+    }
 
     // MARK: - Storage
 
