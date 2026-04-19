@@ -28,6 +28,10 @@ final class ServerSetupViewModel: ObservableObject {
             errorMessage = "Введите адрес сервера"
             return
         }
+        guard isValidHost(host) else {
+            errorMessage = "Некорректный адрес (пример: 192.168.1.1 или myserver.com)"
+            return
+        }
         guard let portNumber = Int(port), (1...65535).contains(portNumber) else {
             errorMessage = "Порт должен быть числом от 1 до 65535"
             return
@@ -47,8 +51,8 @@ final class ServerSetupViewModel: ObservableObject {
                     secret: secret
                 )
                 isLoading = false
-                let serverURL = "http://\(host):\(port)"
-                appState.completeAuth(mode: mode, token: token, serverURL: serverURL)
+                let serverConfiguration = ServerConfiguration.selfHosted(host: host, port: portNumber)
+                appState.completeAuth(mode: mode, token: token, serverConfiguration: serverConfiguration)
             } catch {
                 isLoading = false
                 errorMessage = mapError(error)
@@ -58,8 +62,15 @@ final class ServerSetupViewModel: ObservableObject {
 
     // MARK: - Private
 
+    private func isValidHost(_ host: String) -> Bool {
+        let trimmed = host.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return false }
+        let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: ".-_"))
+        return trimmed.unicodeScalars.allSatisfy { allowed.contains($0) }
+    }
+
     private func checkConnection(host: String, port: Int, secret: String) async throws -> String? {
-        guard let url = URL(string: "http://\(host):\(port)/auth") else {
+        guard let url = ServerConfiguration.selfHosted(host: host, port: port).authURL else {
             throw ServerSetupError.badURL
         }
 

@@ -20,7 +20,7 @@ struct RegisterView: View {
 
     var body: some View {
         ZStack {
-            Color(hex: "#0A0A0F").ignoresSafeArea()
+            Color.srBackground.ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: 0) {
@@ -36,7 +36,7 @@ struct RegisterView: View {
                                 Text("Назад")
                                     .font(.system(size: 16))
                             }
-                            .foregroundColor(Color(hex: "#7777AA"))
+                            .foregroundColor(.srTextSecondary)
                         }
                         Spacer()
                     }
@@ -47,12 +47,12 @@ struct RegisterView: View {
                     VStack(spacing: 8) {
                         Text("Регистрация")
                             .font(.system(size: 28, weight: .semibold))
-                            .foregroundColor(Color(hex: "#EEEEFF"))
+                            .foregroundColor(.srTextPrimary)
                             .kerning(-0.6)
 
                         Text(mode == .shared ? "Общий сервер" : "Свой сервер")
                             .font(.system(size: 15))
-                            .foregroundColor(Color(hex: "#6666AA"))
+                            .foregroundColor(.srTextSecondary)
                     }
                     .padding(.bottom, 40)
 
@@ -84,7 +84,7 @@ struct RegisterView: View {
                     HStack {
                         Text("Минимум 8 символов")
                             .font(.system(size: 12))
-                            .foregroundColor(Color(hex: "#44446A"))
+                            .foregroundColor(.srTextTertiary)
                         Spacer()
                     }
                     .padding(.horizontal, 24)
@@ -98,7 +98,7 @@ struct RegisterView: View {
                             Text(error)
                                 .font(.system(size: 13))
                         }
-                        .foregroundColor(Color(hex: "#FF6B6B"))
+                        .foregroundColor(.srDanger)
                         .padding(.horizontal, 24)
                         .padding(.bottom, 12)
                     }
@@ -120,11 +120,7 @@ struct RegisterView: View {
                         .frame(height: 52)
                         .background(
                             RoundedRectangle(cornerRadius: 14)
-                                .fill(
-                                    viewModel.isLoading
-                                        ? Color(hex: "#4A3FA0")
-                                        : Color(hex: "#6C5CE7")
-                                )
+                                .fill(viewModel.isLoading ? Color.srAccentDark : Color.srAccent)
                         )
                     }
                     .padding(.horizontal, 24)
@@ -133,7 +129,7 @@ struct RegisterView: View {
                     // Terms note
                     Text("Регистрируясь, вы соглашаетесь с условиями использования сервиса")
                         .font(.system(size: 11))
-                        .foregroundColor(Color(hex: "#3A3A60"))
+                        .foregroundColor(.srTextTertiary)
                         .multilineTextAlignment(.center)
                         .padding(.horizontal, 32)
                         .padding(.top, 16)

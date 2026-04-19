@@ -9,14 +9,17 @@ import SwiftUI
 
 struct ServerSetupView: View {
     let mode: StorageMode
+    var onBack: (() -> Void)? = nil
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var appState: AppState
     @StateObject private var viewModel: ServerSetupViewModel
     @FocusState private var focusedField: Field?
 
     enum Field { case host, port, secret }
 
-    init(mode: StorageMode) {
+    init(mode: StorageMode, onBack: (() -> Void)? = nil) {
         self.mode = mode
+        self.onBack = onBack
         _viewModel = StateObject(wrappedValue: ServerSetupViewModel(mode: mode))
     }
 
@@ -30,8 +33,12 @@ struct ServerSetupView: View {
                     // Back button
                     HStack {
                         Button {
-                            withAnimation(.easeInOut(duration: 0.3)) {
-                                appState.currentScreen = .onboarding
+                            if let onBack {
+                                onBack()
+                            } else {
+                                withAnimation(.easeInOut(duration: 0.3)) {
+                                    appState.currentScreen = .onboarding
+                                }
                             }
                         } label: {
                             HStack(spacing: 6) {

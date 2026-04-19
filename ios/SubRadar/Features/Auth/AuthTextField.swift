@@ -18,18 +18,18 @@ struct AuthTextField: View {
         HStack(spacing: 12) {
             Image(systemName: icon)
                 .font(.system(size: 16))
-                .foregroundColor(Color(hex: "#44446A"))
+                .foregroundColor(.srTextTertiary)
                 .frame(width: 20)
 
             if isSecure {
                 SecureField(placeholder, text: $text)
                     .font(.system(size: 16))
-                    .foregroundColor(Color(hex: "#DDDDF5"))
+                    .foregroundColor(.srTextPrimary)
                     .autocorrectionDisabled()
             } else {
                 TextField(placeholder, text: $text)
                     .font(.system(size: 16))
-                    .foregroundColor(Color(hex: "#DDDDF5"))
+                    .foregroundColor(.srTextPrimary)
                     .keyboardType(keyboardType)
                     .autocorrectionDisabled()
                     .autocapitalization(.none)
@@ -39,10 +39,10 @@ struct AuthTextField: View {
         .frame(height: 52)
         .background(
             RoundedRectangle(cornerRadius: 14)
-                .fill(Color(hex: "#13131F"))
+                .fill(Color.srSurface2)
                 .overlay(
                     RoundedRectangle(cornerRadius: 14)
-                        .stroke(Color(hex: "#2D2D45"), lineWidth: 1)
+                        .stroke(Color.srBorder, lineWidth: 1)
                 )
         )
     }

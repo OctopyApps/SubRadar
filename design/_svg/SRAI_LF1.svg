@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+
+  <!-- Light background -->
+  <rect width="1024" height="1024" rx="230" fill="#F4F4FA"/>
+
+  <!-- Outer ring -->
+  <circle cx="512" cy="512" r="370" fill="none" stroke="#6C5CE7" stroke-width="18"/>
+  <!-- Mid ring -->
+  <circle cx="512" cy="512" r="260" fill="none" stroke="#6C5CE7" stroke-width="9" opacity="0.35"/>
+  <!-- Inner ring -->
+  <circle cx="512" cy="512" r="150" fill="none" stroke="#6C5CE7" stroke-width="7" opacity="0.25"/>
+
+  <!-- Crosshairs -->
+  <line x1="142" y1="512" x2="882" y2="512" stroke="#6C5CE7" stroke-width="4" opacity="0.15"/>
+  <line x1="512" y1="142" x2="512" y2="882" stroke="#6C5CE7" stroke-width="4" opacity="0.15"/>
+
+  <!-- Sweep sector -->
+  <path d="M512 512 L774 328 A370 370 0 0 1 882 512 Z" fill="#6C5CE7" opacity="0.14"/>
+  <!-- Sweep line -->
+  <line x1="512" y1="512" x2="774" y2="328" stroke="#6C5CE7" stroke-width="14" stroke-linecap="round"/>
+
+  <!-- S arc on top -->
+  <path d="M380 228 Q512 168 644 228" fill="none" stroke="#8B7FF5" stroke-width="14" stroke-linecap="round"/>
+
+  <!-- Center dot -->
+  <circle cx="512" cy="512" r="20" fill="#6C5CE7"/>
+  <circle cx="512" cy="512" r="10" fill="#ffffff" opacity="0.9"/>
+
+  <!-- OCTOPUS — upper-left -->
+  <ellipse cx="354" cy="368" rx="46" ry="36" fill="#A29BFE"/>
+  <ellipse cx="354" cy="346" rx="40" ry="32" fill="#6C5CE7"/>
+  <!-- Eyes -->
+  <circle cx="340" cy="340" r="9"   fill="#ffffff" opacity="0.95"/>
+  <circle cx="368" cy="340" r="9"   fill="#ffffff" opacity="0.95"/>
+  <circle cx="342" cy="342" r="4.5" fill="#2D2D45"/>
+  <circle cx="370" cy="342" r="4.5" fill="#2D2D45"/>
+  <circle cx="340" cy="338" r="2"   fill="#ffffff" opacity="0.7"/>
+  <circle cx="368" cy="338" r="2"   fill="#ffffff" opacity="0.7"/>
+  <!-- Tentacles -->
+  <path d="M322 388 Q312 412 316 434" fill="none" stroke="#8B7FF5" stroke-width="8" stroke-linecap="round"/>
+  <path d="M336 396 Q330 422 332 446" fill="none" stroke="#8B7FF5" stroke-width="8" stroke-linecap="round"/>
+  <path d="M354 400 Q354 428 354 452" fill="none" stroke="#8B7FF5" stroke-width="8" stroke-linecap="round"/>
+  <path d="M372 396 Q378 422 376 446" fill="none" stroke="#8B7FF5" stroke-width="8" stroke-linecap="round"/>
+  <path d="M386 388 Q396 412 392 434" fill="none" stroke="#8B7FF5" stroke-width="8" stroke-linecap="round"/>
+  <path d="M396 376 Q410 396 408 418" fill="none" stroke="#8B7FF5" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+  <path d="M310 376 Q296 396 298 418" fill="none" stroke="#8B7FF5" stroke-width="6" stroke-linecap="round" opacity="0.6"/>
+
+  <!-- Ping rings -->
+  <circle cx="354" cy="368" r="64" fill="none" stroke="#2DD4BF" stroke-width="9" opacity="0.65"/>
+  <circle cx="354" cy="368" r="96" fill="none" stroke="#2DD4BF" stroke-width="5" opacity="0.25"/>
+
+  <!-- Other blips -->
+  <circle cx="680" cy="660" r="12" fill="#8B7FF5" opacity="0.45"/>
+  <circle cx="610" cy="720" r="9"  fill="#6C5CE7" opacity="0.3"/>
+
+</svg>

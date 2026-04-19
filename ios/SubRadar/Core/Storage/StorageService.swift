@@ -32,6 +32,8 @@ enum StorageError: LocalizedError {
     case notFound
     case saveFailed(underlying: Error)
     case fetchFailed(underlying: Error)
+    /// Удалённое хранилище ещё не реализовано — бэкенд в разработке.
+    case notImplemented
 
     var errorDescription: String? {
         switch self {
@@ -41,6 +43,8 @@ enum StorageError: LocalizedError {
             return "Не удалось сохранить: \(e.localizedDescription)"
         case .fetchFailed(let e):
             return "Не удалось загрузить: \(e.localizedDescription)"
+        case .notImplemented:
+            return "Функция недоступна: синхронизация с сервером ещё не реализована"
         }
     }
 }

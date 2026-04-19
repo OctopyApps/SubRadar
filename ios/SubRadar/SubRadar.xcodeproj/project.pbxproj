@@ -27,74 +27,22 @@
 		EB4A5B412F8C2F2500193B74 /* SubRadar.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = SubRadar.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		EB4A5B502F8C2F2700193B74 /* SubRadarTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SubRadarTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		EB4A5B5A2F8C2F2700193B74 /* SubRadarUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = SubRadarUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		EB65CFAC2F92A3D1008B335B /* SubRadar-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "SubRadar-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
-
-/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		EB4A5BAE2F8C4ACE00193B74 /* Exceptions for "App" folder in "SubRadar" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				AppState.swift,
-				SubRadarApp.swift,
-			);
-			target = EB4A5B402F8C2F2500193B74 /* SubRadar */;
-		};
-		EB4A5BAF2F8C4ACE00193B74 /* Exceptions for "Features" folder in "SubRadar" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Auth/AuthTextField.swift,
-				Auth/AuthView.swift,
-				Auth/AuthViewModel.swift,
-				Auth/RegisterView.swift,
-				Auth/RegisterViewModel.swift,
-				Onboarding/OnboardingView.swift,
-				Onboarding/OnboardingViewModel.swift,
-				ServerSetup/ServerSetupView.swift,
-				ServerSetup/ServerSetupViewModel.swift,
-				Subscriptions/Add/AddSubscriptionView.swift,
-				Subscriptions/Add/AddSubscriptionViewModel.swift,
-				Subscriptions/SubscriptionsView.swift,
-				Subscriptions/SubscriptionsViewModel.swift,
-			);
-			target = EB4A5B402F8C2F2500193B74 /* SubRadar */;
-		};
-		EB4A5BB02F8C4ACE00193B74 /* Exceptions for "Core" folder in "SubRadar" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Models/AppConfiguration.swift,
-				Models/StorageMode.swift,
-				Models/Subscription.swift,
-				Models/Tag.swift,
-				Storage/LocalStorageService.swift,
-				Storage/StorageService.swift,
-				Storage/StorageServiceFactory.swift,
-				Storage/UserDefaultsService.swift,
-			);
-			target = EB4A5B402F8C2F2500193B74 /* SubRadar */;
-		};
-/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		EB4A5B6D2F8C30BF00193B74 /* App */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				EB4A5BAE2F8C4ACE00193B74 /* Exceptions for "App" folder in "SubRadar" target */,
-			);
 			path = App;
 			sourceTree = "<group>";
 		};
 		EB4A5B6F2F8C30DC00193B74 /* Features */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				EB4A5BAF2F8C4ACE00193B74 /* Exceptions for "Features" folder in "SubRadar" target */,
-			);
 			path = Features;
 			sourceTree = "<group>";
 		};
 		EB4A5B702F8C30F500193B74 /* Core */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				EB4A5BB02F8C4ACE00193B74 /* Exceptions for "Core" folder in "SubRadar" target */,
-			);
 			path = Core;
 			sourceTree = "<group>";
 		};
@@ -133,6 +81,7 @@
 		EB4A5B382F8C2F2400193B74 = {
 			isa = PBXGroup;
 			children = (
+				EB65CFAC2F92A3D1008B335B /* SubRadar-Info.plist */,
 				EB4A5B6D2F8C30BF00193B74 /* App */,
 				EB4A5B6F2F8C30DC00193B74 /* Features */,
 				EB4A5B702F8C30F500193B74 /* Core */,
@@ -165,6 +114,12 @@
 			buildRules = (
 			);
 			dependencies = (
+			);
+			fileSystemSynchronizedGroups = (
+				EB4A5B6D2F8C30BF00193B74 /* App */,
+				EB4A5B6F2F8C30DC00193B74 /* Features */,
+				EB4A5B702F8C30F500193B74 /* Core */,
+				EB4A5B722F8C311600193B74 /* Resources */,
 			);
 			name = SubRadar;
 			packageProductDependencies = (
@@ -445,11 +400,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = B9QU6A6ZLL;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "SubRadar-Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -473,11 +431,14 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = "";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = B9QU6A6ZLL;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "SubRadar-Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

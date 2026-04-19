@@ -10,33 +10,29 @@ import Foundation
 struct AppConfiguration: Codable {
     let storageMode: StorageMode
     let isAuthenticated: Bool
-    let authToken: String?
-    let serverURL: String?
+    let serverConfiguration: ServerConfiguration
 
     static func local() -> AppConfiguration {
         AppConfiguration(
             storageMode: .local,
             isAuthenticated: true,
-            authToken: nil,
-            serverURL: nil
+            serverConfiguration: .shared()
         )
     }
 
-    static func shared(token: String?) -> AppConfiguration {
+    static func shared() -> AppConfiguration {
         AppConfiguration(
             storageMode: .shared,
             isAuthenticated: true,
-            authToken: token,
-            serverURL: nil
+            serverConfiguration: .shared()
         )
     }
 
-    static func selfHosted(token: String?, serverURL: String?) -> AppConfiguration {
+    static func selfHosted(serverConfiguration: ServerConfiguration) -> AppConfiguration {
         AppConfiguration(
             storageMode: .selfHosted,
             isAuthenticated: true,
-            authToken: token,
-            serverURL: serverURL
+            serverConfiguration: serverConfiguration
         )
     }
 }

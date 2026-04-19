@@ -26,6 +26,10 @@ final class AuthViewModel: ObservableObject {
             errorMessage = "Заполните все поля"
             return
         }
+        guard isValidEmail(email) else {
+            errorMessage = "Введите корректный email"
+            return
+        }
         errorMessage = nil
         isLoading = true
 
@@ -48,9 +52,15 @@ final class AuthViewModel: ObservableObject {
 
     // MARK: - Private
 
+    private func isValidEmail(_ email: String) -> Bool {
+        let predicate = NSPredicate(format: "SELF MATCHES %@",
+            "[A-Z0-9a-z._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}")
+        return predicate.evaluate(with: email)
+    }
+
     private func authRequest(email: String, password: String) async throws -> String? {
-        // Базовый URL будет браться из конфигурации сервера — пока хардкод
-        guard let url = URL(string: "https://api.subradar.io/auth") else {
+        let serverConfig = UserDefaultsService.shared.configuration?.serverConfiguration ?? .shared()
+        guard let url = serverConfig.authURL else {
             throw AuthError.badURL
         }
 
