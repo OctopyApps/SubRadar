@@ -69,11 +69,16 @@ final class AppState: ObservableObject {
         didSet { save(categories, forKey: "categories") }
     }
 
-    // MARK: - Filter categories (с "Все" в начале)
+    var filterCategories: [AppCategory] { [.all] + categories }
 
-    var filterCategories: [AppCategory] {
-        [.all] + categories
+    // MARK: - Notifications
+
+    @Published var notificationSettings: NotificationSettings {
+        didSet { save(notificationSettings, forKey: "notificationSettings") }
     }
+
+    /// Статус разрешения — обновляется при запуске и при открытии экрана уведомлений
+    @Published var notificationAuthorizationGranted: Bool = false
 
     private let defaults = UserDefaultsService.shared
 
@@ -89,6 +94,21 @@ final class AppState: ObservableObject {
 
         currencies = Self.load([AppCurrency].self, forKey: "currencies") ?? AppCurrency.defaults
         categories = Self.load([AppCategory].self, forKey: "categories") ?? AppCategory.defaults
+        notificationSettings = Self.load(NotificationSettings.self, forKey: "notificationSettings") ?? .default
+        selectedIconName = UserDefaults.standard.string(forKey: "selectedIconName")
+    }
+
+    // MARK: - Notification permission
+
+    func refreshNotificationStatus() async {
+        let status = await NotificationService.shared.authorizationStatus()
+        notificationAuthorizationGranted = (status == .authorized || status == .provisional)
+    }
+
+    func requestNotificationPermission() async -> Bool {
+        let granted = await NotificationService.shared.requestPermission()
+        notificationAuthorizationGranted = granted
+        return granted
     }
 
     // MARK: - Currency intents
@@ -125,7 +145,7 @@ final class AppState: ObservableObject {
         categories.remove(atOffsets: offsets)
     }
 
-    // MARK: - Currency lookup (для LocalStorageService)
+    // MARK: - Lookup helpers
 
     func currency(forCode code: String) -> AppCurrency {
         currencies.first { $0.code == code }
@@ -145,7 +165,7 @@ final class AppState: ObservableObject {
         defaults.configuration?.storageMode ?? .local
     }
 
-    // MARK: - Intents
+    // MARK: - Auth intents
 
     func selectMode(_ mode: StorageMode) {
         switch mode {
@@ -187,5 +207,25 @@ final class AppState: ObservableObject {
 
     private func save<T: Encodable>(_ value: T, forKey key: String) {
         UserDefaults.standard.set(try? JSONEncoder().encode(value), forKey: key)
+    }
+    
+    // MARK: - Icon
+
+    /// nil = основная иконка
+    @Published var selectedIconName: String? {
+        didSet { UserDefaults.standard.set(selectedIconName, forKey: "selectedIconName") }
+    }
+
+    func setAppIcon(_ iconName: String?) {
+        guard UIApplication.shared.supportsAlternateIcons else { return }
+        UIApplication.shared.setAlternateIconName(iconName) { [weak self] error in
+            if let error {
+                print("Icon error: \(error)")
+            } else {
+                DispatchQueue.main.async {
+                    self?.selectedIconName = iconName
+                }
+            }
+        }
     }
 }

@@ -7,6 +7,23 @@
 
 import SwiftUI
 
+// MARK: - AppIconOption
+
+struct AppIconOption: Identifiable {
+    let id: String?         // nil = основная иконка (SRAI_LM1)
+    let label: String
+    let assetName: String   // Image Set в Assets.xcassets для превью
+}
+
+private let appIcons: [AppIconOption] = [
+    AppIconOption(id: nil,         label: "Светлая (основная)", assetName: "AppIconLM1"),
+    AppIconOption(id: "SRAI_DM1",  label: "Тёмная",             assetName: "AppIconDM1"),
+    AppIconOption(id: "SRAI_LF1",  label: "Светлая 2",          assetName: "AppIconLF1"),
+    AppIconOption(id: "SRAI_DF1",  label: "Тёмная 2",           assetName: "AppIconDF1"),
+]
+
+// MARK: - SettingsView
+
 struct SettingsView: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
@@ -22,6 +39,7 @@ struct SettingsView: View {
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 24) {
                         themeSection
+                        iconSection
                         currenciesSection
                         categoriesSection
                     }
@@ -71,6 +89,22 @@ struct SettingsView: View {
                 if index > 0 { Divider().background(Color.srBorder).padding(.leading, 56) }
                 ThemeRow(preference: pref, isSelected: appState.colorSchemePreference == pref) {
                     withAnimation(.easeInOut(duration: 0.2)) { appState.colorSchemePreference = pref }
+                }
+            }
+        }
+    }
+
+    // MARK: - Icon
+
+    private var iconSection: some View {
+        SettingsSection(title: "Иконка приложения", icon: "app.badge") {
+            ForEach(Array(appIcons.enumerated()), id: \.offset) { index, option in
+                if index > 0 { Divider().background(Color.srBorder).padding(.leading, 70) }
+                IconRow(
+                    option: option,
+                    isSelected: appState.selectedIconName == option.id
+                ) {
+                    appState.setAppIcon(option.id)
                 }
             }
         }
@@ -140,7 +174,6 @@ private struct SettingsSection<Content: View>: View {
                     .buttonStyle(.plain)
                 }
             }
-
             VStack(spacing: 0) { content }
                 .background(
                     RoundedRectangle(cornerRadius: 16).fill(Color.srSurface2)
@@ -176,6 +209,56 @@ private struct ThemeRow: View {
     }
 }
 
+// MARK: - Icon Row
+
+private struct IconRow: View {
+    let option: AppIconOption
+    let isSelected: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Group {
+                    if let uiImage = UIImage(named: option.assetName) {
+                        Image(uiImage: uiImage)
+                            .resizable()
+                            .scaledToFill()
+                    } else {
+                        ZStack {
+                            RoundedRectangle(cornerRadius: 10).fill(Color.srAccent.opacity(0.15))
+                            Image(systemName: "app.fill")
+                                .font(.system(size: 20))
+                                .foregroundColor(.srAccent)
+                        }
+                    }
+                }
+                .frame(width: 44, height: 44)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
+                .overlay(
+                    RoundedRectangle(cornerRadius: 10)
+                        .stroke(isSelected ? Color.srAccent : Color.srBorder,
+                                lineWidth: isSelected ? 2 : 1)
+                )
+
+                Text(option.label)
+                    .font(.system(size: 16))
+                    .foregroundColor(.srTextPrimary)
+
+                Spacer()
+
+                if isSelected {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 14, weight: .semibold))
+                        .foregroundColor(.srAccent)
+                }
+            }
+            .padding(.horizontal, 16).padding(.vertical, 12)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
 // MARK: - Currency Row
 
 private struct CurrencyRow: View {
@@ -196,9 +279,7 @@ private struct CurrencyRow: View {
             Spacer()
             if canDelete {
                 Button(action: onDelete) {
-                    Image(systemName: "minus.circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundColor(.srDanger)
+                    Image(systemName: "minus.circle.fill").font(.system(size: 20)).foregroundColor(.srDanger)
                 }
                 .buttonStyle(.plain)
             }
@@ -224,9 +305,7 @@ private struct CategoryRow: View {
             Spacer()
             if canDelete {
                 Button(action: onDelete) {
-                    Image(systemName: "minus.circle.fill")
-                        .font(.system(size: 20))
-                        .foregroundColor(.srDanger)
+                    Image(systemName: "minus.circle.fill").font(.system(size: 20)).foregroundColor(.srDanger)
                 }
                 .buttonStyle(.plain)
             }
@@ -256,7 +335,6 @@ private struct AddCurrencySheet: View {
         ZStack {
             Color.srBackground.ignoresSafeArea()
             VStack(spacing: 0) {
-                // Header
                 HStack {
                     Button(action: { dismiss() }) {
                         Image(systemName: "xmark")
@@ -277,22 +355,15 @@ private struct AddCurrencySheet: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 16) {
-                        // Predefined
                         if !available.isEmpty {
                             VStack(alignment: .leading, spacing: 10) {
                                 Text("ПОПУЛЯРНЫЕ")
                                     .font(.system(size: 11, weight: .semibold))
-                                    .foregroundColor(.srTextSecondary)
-                                    .kerning(0.5)
-                                    .padding(.leading, 4)
-
+                                    .foregroundColor(.srTextSecondary).kerning(0.5).padding(.leading, 4)
                                 VStack(spacing: 0) {
                                     ForEach(Array(available.enumerated()), id: \.element.id) { index, cur in
                                         if index > 0 { Divider().background(Color.srBorder).padding(.leading, 56) }
-                                        Button(action: {
-                                            appState.addCurrency(cur)
-                                            dismiss()
-                                        }) {
+                                        Button(action: { appState.addCurrency(cur); dismiss() }) {
                                             HStack(spacing: 14) {
                                                 ZStack {
                                                     RoundedRectangle(cornerRadius: 10).fill(Color.srAccent.opacity(0.12)).frame(width: 38, height: 38)
@@ -317,17 +388,14 @@ private struct AddCurrencySheet: View {
                             }
                         }
 
-                        // Custom
                         VStack(alignment: .leading, spacing: 10) {
                             Button(action: { withAnimation { showCustom.toggle() } }) {
                                 HStack(spacing: 6) {
                                     Image(systemName: showCustom ? "chevron.down" : "chevron.right")
-                                        .font(.system(size: 11, weight: .semibold))
-                                        .foregroundColor(.srAccent)
+                                        .font(.system(size: 11, weight: .semibold)).foregroundColor(.srAccent)
                                     Text("СВОЯ ВАЛЮТА")
                                         .font(.system(size: 11, weight: .semibold))
-                                        .foregroundColor(.srTextSecondary)
-                                        .kerning(0.5)
+                                        .foregroundColor(.srTextSecondary).kerning(0.5)
                                 }
                                 .padding(.leading, 4)
                             }
@@ -341,17 +409,13 @@ private struct AddCurrencySheet: View {
                                             .autocorrectionDisabled().textInputAutocapitalization(.characters)
                                     }
                                     .padding(.horizontal, 16).padding(.vertical, 14)
-
                                     Divider().background(Color.srBorder)
-
                                     HStack(spacing: 12) {
                                         Text("Символ").font(.system(size: 14)).foregroundColor(.srTextSecondary).frame(width: 80, alignment: .leading)
                                         TextField("$", text: $customSymbol).font(.system(size: 16)).foregroundColor(.srTextPrimary).tint(.srAccent)
                                     }
                                     .padding(.horizontal, 16).padding(.vertical, 14)
-
                                     Divider().background(Color.srBorder)
-
                                     HStack(spacing: 12) {
                                         Text("Название").font(.system(size: 14)).foregroundColor(.srTextSecondary).frame(width: 80, alignment: .leading)
                                         TextField("Доллар", text: $customName).font(.system(size: 16)).foregroundColor(.srTextPrimary).tint(.srAccent)
@@ -369,12 +433,11 @@ private struct AddCurrencySheet: View {
 
                                 Button(action: {
                                     guard canAdd else { return }
-                                    let cur = AppCurrency(
+                                    appState.addCurrency(AppCurrency(
                                         code: customCode.trimmingCharacters(in: .whitespaces).uppercased(),
                                         symbol: customSymbol.trimmingCharacters(in: .whitespaces),
                                         displayName: customName.trimmingCharacters(in: .whitespaces)
-                                    )
-                                    appState.addCurrency(cur)
+                                    ))
                                     dismiss()
                                 }) {
                                     Text("Добавить")
@@ -383,8 +446,7 @@ private struct AddCurrencySheet: View {
                                         .frame(maxWidth: .infinity).frame(height: 52)
                                         .background(RoundedRectangle(cornerRadius: 14).fill(canAdd ? Color.srAccent : Color.srSurface2))
                                 }
-                                .buttonStyle(.plain)
-                                .disabled(!canAdd)
+                                .buttonStyle(.plain).disabled(!canAdd)
                             }
                         }
                     }
@@ -410,15 +472,12 @@ private struct AddCategorySheet: View {
         "cart", "bag", "gift", "camera", "newspaper", "tv"
     ]
 
-    private var canAdd: Bool {
-        !name.trimmingCharacters(in: .whitespaces).isEmpty
-    }
+    private var canAdd: Bool { !name.trimmingCharacters(in: .whitespaces).isEmpty }
 
     var body: some View {
         ZStack {
             Color.srBackground.ignoresSafeArea()
             VStack(spacing: 0) {
-                // Header
                 HStack {
                     Button(action: { dismiss() }) {
                         Image(systemName: "xmark")
@@ -439,12 +498,10 @@ private struct AddCategorySheet: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 24) {
-                        // Name
                         VStack(alignment: .leading, spacing: 10) {
                             Text("НАЗВАНИЕ")
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(.srTextSecondary).kerning(0.5).padding(.leading, 4)
-
                             HStack(spacing: 12) {
                                 Text("Имя").font(.system(size: 14)).foregroundColor(.srTextSecondary).frame(width: 80, alignment: .leading)
                                 TextField("Транспорт", text: $name).font(.system(size: 16)).foregroundColor(.srTextPrimary).tint(.srAccent)
@@ -456,22 +513,17 @@ private struct AddCategorySheet: View {
                             )
                         }
 
-                        // Icon picker
                         VStack(alignment: .leading, spacing: 10) {
                             Text("ИКОНКА")
                                 .font(.system(size: 11, weight: .semibold))
                                 .foregroundColor(.srTextSecondary).kerning(0.5).padding(.leading, 4)
-
                             LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 6), spacing: 12) {
                                 ForEach(icons, id: \.self) { icon in
                                     Button(action: { selectedIcon = icon }) {
                                         ZStack {
                                             RoundedRectangle(cornerRadius: 12)
                                                 .fill(selectedIcon == icon ? Color.srAccent : Color.srSurface2)
-                                                .overlay(
-                                                    RoundedRectangle(cornerRadius: 12)
-                                                        .stroke(selectedIcon == icon ? Color.clear : Color.srBorder, lineWidth: 1)
-                                                )
+                                                .overlay(RoundedRectangle(cornerRadius: 12).stroke(selectedIcon == icon ? Color.clear : Color.srBorder, lineWidth: 1))
                                             Image(systemName: icon)
                                                 .font(.system(size: 18, weight: .medium))
                                                 .foregroundColor(selectedIcon == icon ? .white : .srTextSecondary)
@@ -483,14 +535,9 @@ private struct AddCategorySheet: View {
                             }
                         }
 
-                        // Add button
                         Button(action: {
                             guard canAdd else { return }
-                            let cat = AppCategory(
-                                name: name.trimmingCharacters(in: .whitespaces),
-                                icon: selectedIcon
-                            )
-                            appState.addCategory(cat)
+                            appState.addCategory(AppCategory(name: name.trimmingCharacters(in: .whitespaces), icon: selectedIcon))
                             dismiss()
                         }) {
                             Text("Добавить")
@@ -499,8 +546,7 @@ private struct AddCategorySheet: View {
                                 .frame(maxWidth: .infinity).frame(height: 52)
                                 .background(RoundedRectangle(cornerRadius: 14).fill(canAdd ? Color.srAccent : Color.srSurface2))
                         }
-                        .buttonStyle(.plain)
-                        .disabled(!canAdd)
+                        .buttonStyle(.plain).disabled(!canAdd)
                     }
                     .padding(.horizontal, 20).padding(.bottom, 40)
                 }

@@ -77,7 +77,10 @@ struct SubscriptionsView: View {
 
             tabBar
         }
-        .task { await viewModel.load() }
+        .task {
+            await viewModel.load()
+            await appState.refreshNotificationStatus()
+        }
         .sheet(isPresented: $viewModel.isMenuOpen) {
             MenuSheet().environmentObject(appState)
         }
@@ -424,6 +427,7 @@ struct MenuSheet: View {
     @EnvironmentObject private var appState: AppState
     @Environment(\.dismiss) private var dismiss
     @State private var showSettings = false
+    @State private var showNotifications = false
 
     var body: some View {
         ZStack {
@@ -435,7 +439,7 @@ struct MenuSheet: View {
                     .kerning(-0.5).padding(.horizontal, 24).padding(.bottom, 24)
                 VStack(spacing: 4) {
                     MenuRow(icon: "gear",                        label: "Настройки")        { showSettings = true }
-                    MenuRow(icon: "bell",                        label: "Уведомления")       {}
+                    MenuRow(icon: "bell",                        label: "Уведомления")       { showNotifications = true }
                     MenuRow(icon: "arrow.triangle.2.circlepath", label: "Режим хранения")    {}
                     MenuRow(icon: "questionmark.circle",         label: "Помощь")            {}
                 }
@@ -448,6 +452,10 @@ struct MenuSheet: View {
         .presentationBackground(Color.srSurface)
         .sheet(isPresented: $showSettings) {
             SettingsView().environmentObject(appState)
+        }
+        .sheet(isPresented: $showNotifications) {
+            NotificationsView(subscriptions: [])
+                .environmentObject(appState)
         }
     }
 }

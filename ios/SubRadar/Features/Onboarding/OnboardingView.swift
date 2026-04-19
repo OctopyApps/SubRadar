@@ -18,11 +18,9 @@ struct OnboardingView: View {
             VStack(spacing: 0) {
                 Spacer()
 
-                // App icon
                 AppIconView()
                     .padding(.bottom, 24)
 
-                // Title
                 Text("SubRadar")
                     .font(.system(size: 28, weight: .semibold))
                     .foregroundColor(.srTextPrimary)
@@ -36,7 +34,6 @@ struct OnboardingView: View {
                     .lineSpacing(4)
                     .padding(.bottom, 44)
 
-                // Mode cards
                 VStack(spacing: 12) {
                     ForEach(StorageMode.allCases, id: \.self) { mode in
                         StorageModeCard(
@@ -49,7 +46,6 @@ struct OnboardingView: View {
                 }
                 .padding(.horizontal, 24)
 
-                // Footer
                 Text("Режим можно сменить позже\nв настройках приложения")
                     .font(.system(size: 12))
                     .foregroundColor(.srTextTertiary)
@@ -66,15 +62,28 @@ struct OnboardingView: View {
 // MARK: - App Icon
 
 private struct AppIconView: View {
-    var body: some View {
-        ZStack {
-            RoundedRectangle(cornerRadius: 20)
-                .fill(LinearGradient.srAccentGradient)
-                .frame(width: 72, height: 72)
+    @Environment(\.colorScheme) private var colorScheme
 
-            Image(systemName: "dot.radiowaves.up.forward")
-                .font(.system(size: 30, weight: .medium))
-                .foregroundColor(.white)
+    var body: some View {
+        // Показываем иконку из Assets если она уже добавлена,
+        // иначе фоллбэк — градиентный квадрат с SF Symbol
+        let assetName = colorScheme == .dark ? "AppIconDM1" : "AppIconLM1"
+
+        if let uiImage = UIImage(named: assetName) {
+            Image(uiImage: uiImage)
+                .resizable()
+                .scaledToFit()
+                .frame(width: 72, height: 72)
+                .clipShape(RoundedRectangle(cornerRadius: 20))
+        } else {
+            ZStack {
+                RoundedRectangle(cornerRadius: 20)
+                    .fill(LinearGradient.srAccentGradient)
+                    .frame(width: 72, height: 72)
+                Image(systemName: "dot.radiowaves.up.forward")
+                    .font(.system(size: 30, weight: .medium))
+                    .foregroundColor(.white)
+            }
         }
     }
 }
@@ -107,23 +116,19 @@ private struct StorageModeCard: View {
     var body: some View {
         Button(action: action) {
             HStack(spacing: 16) {
-                // Icon
                 ZStack {
                     RoundedRectangle(cornerRadius: 13)
                         .fill(accentColor.opacity(0.12))
                         .frame(width: 48, height: 48)
-
                     Image(systemName: iconName)
                         .font(.system(size: 20, weight: .medium))
                         .foregroundColor(accentColor)
                 }
 
-                // Text
                 VStack(alignment: .leading, spacing: 3) {
                     Text(mode.title)
                         .font(.system(size: 16, weight: .medium))
                         .foregroundColor(.srTextPrimary)
-
                     Text(mode.description)
                         .font(.system(size: 13))
                         .foregroundColor(.srTextSecondary)
@@ -131,7 +136,6 @@ private struct StorageModeCard: View {
 
                 Spacer()
 
-                // Chevron
                 Image(systemName: "chevron.right")
                     .font(.system(size: 13, weight: .medium))
                     .foregroundColor(mode.isFeatured ? .srAccent : .srTextTertiary)
@@ -173,8 +177,6 @@ private struct StorageModeCard: View {
         )
     }
 }
-
-// MARK: - Preview
 
 #Preview {
     OnboardingView()
