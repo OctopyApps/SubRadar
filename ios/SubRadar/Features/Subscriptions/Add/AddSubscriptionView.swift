@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct AddSubscriptionView: View {
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: AddSubscriptionViewModel
     let onSaved: (Subscription) -> Void
 
@@ -23,6 +24,7 @@ struct AddSubscriptionView: View {
             buttonLabel: "Сохранить"
         ) {
             await viewModel.save(onSuccess: onSaved)
+            if viewModel.error == nil { dismiss() }
         }
     }
 }

@@ -54,7 +54,15 @@ class SubscriptionFormViewModel: ObservableObject {
     }
 
     var parsedPrice: Double? {
-        Double(price.replacingOccurrences(of: ",", with: "."))
+        let trimmed = price.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty else { return nil }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .decimal
+        formatter.locale = .current
+        if let n = formatter.number(from: trimmed) { return n.doubleValue }
+        // Fallback: принимаем "." как разделитель независимо от локали
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter.number(from: trimmed)?.doubleValue
     }
 
     // MARK: - Storage

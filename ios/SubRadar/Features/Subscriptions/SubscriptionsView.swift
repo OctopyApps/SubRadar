@@ -369,6 +369,7 @@ private struct SubscriptionCard: View {
             )
             .scaleEffect(isPressed ? 0.97 : 1.0)
             .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isPressed)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .simultaneousGesture(DragGesture(minimumDistance: 0)
@@ -397,6 +398,7 @@ private struct TabBarButton: View {
                 Image(systemName: iconName).font(.system(size: 20, weight: .medium)).foregroundColor(.srTextSecondary)
                 Text(label).font(.system(size: 10)).foregroundColor(.srTextTertiary)
             }
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -480,6 +482,7 @@ private struct MenuRow: View {
             .background(RoundedRectangle(cornerRadius: 14).fill(isPressed ? Color.srSurface2 : Color.clear))
             .scaleEffect(isPressed ? 0.98 : 1.0)
             .animation(.spring(response: 0.2, dampingFraction: 0.7), value: isPressed)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .simultaneousGesture(DragGesture(minimumDistance: 0)

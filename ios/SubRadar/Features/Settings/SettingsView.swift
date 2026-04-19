@@ -204,6 +204,7 @@ private struct ThemeRow: View {
                 }
             }
             .padding(.horizontal, 16).padding(.vertical, 13)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -254,6 +255,7 @@ private struct IconRow: View {
                 }
             }
             .padding(.horizontal, 16).padding(.vertical, 12)
+            .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
     }
@@ -377,6 +379,7 @@ private struct AddCurrencySheet: View {
                                                 Image(systemName: "plus").font(.system(size: 14, weight: .medium)).foregroundColor(.srAccent)
                                             }
                                             .padding(.horizontal, 16).padding(.vertical, 13)
+                                            .contentShape(Rectangle())
                                         }
                                         .buttonStyle(.plain)
                                     }

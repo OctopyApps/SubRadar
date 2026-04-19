@@ -131,6 +131,8 @@ final class SubscriptionsViewModel: ObservableObject {
             price:           subscription.price,
             currency:        subscription.currency,
             billingPeriod:   subscription.billingPeriod,
+            color:           subscription.color,
+            iconName:        subscription.iconName,
             startDate:       subscription.startDate,
             nextBillingDate: subscription.nextBillingDate,
             tag:             subscription.tag,

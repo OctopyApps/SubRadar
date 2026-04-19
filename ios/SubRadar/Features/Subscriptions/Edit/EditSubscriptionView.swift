@@ -8,6 +8,7 @@
 import SwiftUI
 
 struct EditSubscriptionView: View {
+    @Environment(\.dismiss) private var dismiss
     @StateObject private var viewModel: EditSubscriptionViewModel
     let onSaved: (Subscription) -> Void
 
@@ -25,6 +26,7 @@ struct EditSubscriptionView: View {
             buttonLabel: "Сохранить изменения"
         ) {
             await viewModel.save(onSuccess: onSaved)
+            if viewModel.error == nil { dismiss() }
         }
     }
 }
