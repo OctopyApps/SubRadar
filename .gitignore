@@ -39,3 +39,7 @@ Thumbs.db
 
 # ZIPs
 *.zip
+
+# BackEnd
+*.db*
+.idea/
