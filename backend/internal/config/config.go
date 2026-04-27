@@ -1,68 +1,76 @@
 package config
 
 import (
-	"os"
-	"strconv"
+	"github.com/spf13/viper"
+	"log"
+	"strings"
 )
 
-// Config хранит все настройки сервера.
-// Значения читаются из переменных окружения, при отсутствии — дефолты.
 type Config struct {
-	Port           int
-	DBPath         string // путь к файлу SQLite
-	JWTSecret      string // секрет для подписи JWT
-	SelfHosted     bool   // режим self-hosted (вход по секретному ключу)
-	ServerSecret   string // секретный ключ для self-hosted режима
-	MigrationsPath string
+	Port     int
+	DBDriver string // "sqlite" | "postgres"
+	DBPath   string // для sqlite
+	DSN      string // для postgres
 
-	// OAuth
+	MigrationsPath string
+	JWTSecret      string
+	SelfHosted     bool
+	ServerSecret   string
+
+	// OAuth (читаются только из env — содержат секреты)
 	GoogleClientID  string
 	AppleTeamID     string
 	AppleClientID   string
 	AppleKeyID      string
-	ApplePrivateKey string // содержимое .p8 файла
+	ApplePrivateKey string
 }
 
 func Load() *Config {
+	// Ищем config.yaml рядом с бинарником, в ~/.subradar и /etc/subradar
+	viper.SetConfigName("config")
+	viper.SetConfigType("yaml")
+	viper.AddConfigPath(".")
+	viper.AddConfigPath("$HOME/.subradar")
+	viper.AddConfigPath("/etc/subradar")
+
+	// Env-переменные с префиксом SUBRADAR_ перезаписывают config.yaml
+	// Пример: SUBRADAR_SERVER_PORT=9090
+	viper.SetEnvPrefix("SUBRADAR")
+	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
+	viper.AutomaticEnv()
+
+	// Дефолты (если нет ни yaml, ни env)
+	viper.SetDefault("server.port", 8080)
+	viper.SetDefault("storage.driver", "sqlite")
+	viper.SetDefault("storage.sqlite.path", "./subradar.db")
+	viper.SetDefault("auth.jwt_secret", "change-me-in-production")
+	viper.SetDefault("auth.self_hosted", false)
+
+	if err := viper.ReadInConfig(); err != nil {
+		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
+			log.Println("config.yaml не найден, используются env-переменные и дефолты")
+		} else {
+			log.Fatalf("Ошибка чтения config.yaml: %v", err)
+		}
+	} else {
+		log.Printf("Конфиг загружен: %s", viper.ConfigFileUsed())
+	}
+
 	return &Config{
-		Port:           getInt("PORT", 8080),
-		DBPath:         getString("DB_PATH", "./subradar.db"),
-		MigrationsPath: getString("MIGRATIONS_PATH", "internal/db/migrations"),
+		Port:           viper.GetInt("server.port"),
+		DBDriver:       viper.GetString("storage.driver"),
+		DBPath:         viper.GetString("storage.sqlite.path"),
+		DSN:            viper.GetString("storage.postgres.dsn"),
+		MigrationsPath: viper.GetString("storage.migrations_path"),
 
-		JWTSecret:    getString("JWT_SECRET", "change-me-in-production"),
-		SelfHosted:   getBool("SELF_HOSTED", false),
-		ServerSecret: getString("SERVER_SECRET", ""),
+		JWTSecret:    viper.GetString("auth.jwt_secret"),
+		SelfHosted:   viper.GetBool("auth.self_hosted"),
+		ServerSecret: viper.GetString("auth.server_secret"),
 
-		GoogleClientID:  getString("GOOGLE_CLIENT_ID", ""),
-		AppleTeamID:     getString("APPLE_TEAM_ID", ""),
-		AppleClientID:   getString("APPLE_CLIENT_ID", ""),
-		AppleKeyID:      getString("APPLE_KEY_ID", ""),
-		ApplePrivateKey: getString("APPLE_PRIVATE_KEY", ""),
+		GoogleClientID:  viper.GetString("GOOGLE_CLIENT_ID"),
+		AppleTeamID:     viper.GetString("APPLE_TEAM_ID"),
+		AppleClientID:   viper.GetString("APPLE_CLIENT_ID"),
+		AppleKeyID:      viper.GetString("APPLE_KEY_ID"),
+		ApplePrivateKey: viper.GetString("APPLE_PRIVATE_KEY"),
 	}
-}
-
-func getString(key, fallback string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
-	}
-	return fallback
-}
-
-func getInt(key string, fallback int) int {
-	if v := os.Getenv(key); v != "" {
-		if n, err := strconv.Atoi(v); err == nil {
-			return n
-		}
-	}
-	return fallback
-}
-
-func getBool(key string, fallback bool) bool {
-	if v := os.Getenv(key); v != "" {
-		b, err := strconv.ParseBool(v)
-		if err == nil {
-			return b
-		}
-	}
-	return fallback
 }

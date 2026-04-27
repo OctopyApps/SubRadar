@@ -2,12 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 
 	"github.com/OctopyApps/SubRadar-BackEnd/internal/auth"
 	"github.com/OctopyApps/SubRadar-BackEnd/internal/models"
 	"github.com/OctopyApps/SubRadar-BackEnd/internal/repository"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 )
 
 type SubscriptionHandler struct {
@@ -44,17 +46,19 @@ func (h *SubscriptionHandler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.UserID = userID
+	s.ID = uuid.NewString() // генерируем на сервере, игнорируем что пришло от клиента
 
-	if s.ID == "" || s.Name == "" {
-		respondError(w, http.StatusBadRequest, "поля id и name обязательны")
+	if s.Name == "" {
+		respondError(w, http.StatusBadRequest, "поле name обязательно")
 		return
 	}
 
 	if err := h.subs.Create(&s); err != nil {
+		log.Printf("Create subscription error: %v", err)
 		respondError(w, http.StatusInternalServerError, "ошибка создания подписки")
 		return
 	}
-	respondJSON(w, http.StatusCreated, s)
+	respondJSON(w, http.StatusCreated, s) // возвращаем объект с присвоенным ID
 }
 
 // Update godoc

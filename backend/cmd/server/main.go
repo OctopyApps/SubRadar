@@ -15,7 +15,13 @@ func main() {
 	cfg := config.Load()
 
 	// База данных + миграции
-	database, err := db.Connect(cfg.DBPath)
+	source := cfg.DBPath
+	if cfg.DBDriver == "postgres" {
+		source = cfg.DSN
+	}
+
+	database, err := db.Connect(cfg.DBDriver, source)
+	
 	if err != nil {
 		log.Fatalf("Не удалось подключиться к базе данных: %v", err)
 	}
