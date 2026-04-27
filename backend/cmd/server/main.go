@@ -16,9 +16,13 @@ var version = "dev"
 
 func main() {
 	configPath := flag.String("config", "", "путь к config.yaml")
-
+	showVersion := flag.Bool("version", false, "версия приложения")
 	flag.Parse()
 
+	if *showVersion {
+		fmt.Printf("SubRadar v%s\n", version)
+		return
+	}
 	if *configPath != "" {
 		viper.SetConfigFile(*configPath)
 	}
