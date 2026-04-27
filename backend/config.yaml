@@ -1,0 +1,22 @@
+# SubRadar — конфигурация бэкенда
+# Документация: https://github.com/OctopyApps/SubRadar-BackEnd
+
+server:
+  port: 8080
+
+storage:
+  # Выберите драйвер: sqlite | postgres
+  driver: sqlite
+
+  sqlite:
+    path: ./subradar.db
+
+  postgres:
+    # DSN формат: postgres://user:password@host:5432/dbname?sslmode=disable
+    # Можно оставить пустым и передать через переменную окружения SUBRADAR_STORAGE_POSTGRES_DSN
+    dsn: ""
+
+auth:
+  jwt_secret: "change-me-in-production"
+  self_hosted: false
+  server_secret: ""
