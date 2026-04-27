@@ -6,7 +6,7 @@ set -euo pipefail
 # Usage: curl -fsSL https://raw.githubusercontent.com/OctopyApps/SubRadar-BackEnd/main/install.sh | bash
 # =============================================================================
 
-REPO="OctopyApps/SubRadar-BackEnd"
+REPO="OctopyApps/SubRadar"
 BINARY_NAME="subradar"
 INSTALL_DIR="/usr/local/bin"
 CONFIG_DIR="/etc/subradar"
