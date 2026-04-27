@@ -10,6 +10,8 @@ import (
 	"github.com/OctopyApps/SubRadar-BackEnd/internal/server"
 )
 
+var version = "dev"
+
 func main() {
 	// Конфиг из переменных окружения
 	cfg := config.Load()
@@ -21,7 +23,7 @@ func main() {
 	}
 
 	database, err := db.Connect(cfg.DBDriver, source)
-	
+
 	if err != nil {
 		log.Fatalf("Не удалось подключиться к базе данных: %v", err)
 	}
