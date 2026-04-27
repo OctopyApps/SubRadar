@@ -8,10 +8,10 @@ import (
 
 	"github.com/golang-migrate/migrate/v4"
 	migratepostgres "github.com/golang-migrate/migrate/v4/database/postgres"
-	migratesqlite "github.com/golang-migrate/migrate/v4/database/sqlite3"
+	migratesqlite "github.com/golang-migrate/migrate/v4/database/sqlite"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/lib/pq"
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 //go:embed migrations/*.sql
@@ -27,7 +27,7 @@ func Connect(driver, source string) (*sql.DB, error) {
 }
 
 func connectSQLite(path string) (*sql.DB, error) {
-	db, err := sql.Open("sqlite3", path+"?_foreign_keys=on&_journal_mode=WAL")
+	db, err := sql.Open("sqlite", path+"?_foreign_keys=on&_journal_mode=WAL")
 	if err != nil {
 		return nil, fmt.Errorf("открытие SQLite: %w", err)
 	}
@@ -36,7 +36,7 @@ func connectSQLite(path string) (*sql.DB, error) {
 	}
 	db.SetMaxOpenConns(1)
 
-	if err := runMigrations(db, "sqlite3"); err != nil {
+	if err := runMigrations(db, "sqlite"); err != nil {
 		return nil, fmt.Errorf("миграции SQLite: %w", err)
 	}
 	log.Println("SQLite готова:", path)
@@ -84,7 +84,7 @@ func runMigrations(db *sql.DB, driver string) error {
 		if err != nil {
 			return err
 		}
-		m, err = migrate.NewWithInstance("iofs", srcDriver, "sqlite3", dbDriver)
+		m, err = migrate.NewWithInstance("iofs", srcDriver, "sqlite", dbDriver)
 		if err != nil {
 			return err
 		}

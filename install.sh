@@ -3,15 +3,39 @@ set -euo pipefail
 
 # =============================================================================
 # SubRadar Backend — Install Script
-# Usage: curl -fsSL https://raw.githubusercontent.com/OctopyApps/SubRadar-BackEnd/main/install.sh | bash
+# Usage: curl -fsSL https://raw.githubusercontent.com/OctopyApps/SubRadar/main/install.sh | bash
+# Usage (local binary): sudo bash install.sh --local /tmp/subradar
 # =============================================================================
 
-REPO="OctopyApps/SubRadar"
+REPO="OctopyApps/SubRadar-BackEnd"
 BINARY_NAME="subradar"
 INSTALL_DIR="/usr/local/bin"
 CONFIG_DIR="/etc/subradar"
 DATA_DIR="/var/lib/subradar"
 SERVICE_USER="subradar"
+
+# --- Аргументы ---
+LOCAL_BINARY=""
+UNINSTALL=false
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --local)
+      LOCAL_BINARY="${2:-}"
+      if [ -z "$LOCAL_BINARY" ]; then
+        echo "Использование: sudo bash install.sh --local /путь/к/бинарнику"
+        exit 1
+      fi
+      shift 2
+      ;;
+    --uninstall)
+      UNINSTALL=true
+      shift
+      ;;
+    *)
+      shift
+      ;;
+  esac
+done
 
 # --- Цвета для вывода ---
 RED='\033[0;31m'
@@ -60,47 +84,113 @@ echo -e "${BLUE}║     SubRadar Backend Installer    ║${NC}"
 echo -e "${BLUE}╚═══════════════════════════════════╝${NC}"
 echo ""
 
+# --- Удаление ---
+if [ "$UNINSTALL" = true ]; then
+  echo ""
+  echo -e "${BLUE}╔═══════════════════════════════════╗${NC}"
+  echo -e "${BLUE}║     SubRadar Backend Uninstall    ║${NC}"
+  echo -e "${BLUE}╚═══════════════════════════════════╝${NC}"
+  echo ""
+
+  # Останавливаем и удаляем сервис
+  if systemctl is-active --quiet subradar 2>/dev/null; then
+    info "Останавливаем сервис..."
+    systemctl stop subradar
+  fi
+  if systemctl is-enabled --quiet subradar 2>/dev/null; then
+    info "Удаляем из автозапуска..."
+    systemctl disable subradar
+  fi
+  if [ -f "/etc/systemd/system/subradar.service" ]; then
+    rm -f /etc/systemd/system/subradar.service
+    systemctl daemon-reload
+    success "Systemd-сервис удалён"
+  fi
+
+  # Удаляем бинарник
+  if [ -f "${INSTALL_DIR}/${BINARY_NAME}" ]; then
+    rm -f "${INSTALL_DIR}/${BINARY_NAME}"
+    success "Бинарник удалён"
+  fi
+
+  # Удаляем пользователя
+  if id "$SERVICE_USER" &>/dev/null; then
+    userdel "$SERVICE_USER"
+    success "Пользователь ${SERVICE_USER} удалён"
+  fi
+
+  # Спрашиваем про данные и конфиг — не удаляем без явного подтверждения
+  echo ""
+  warn "Данные и конфиг НЕ удалены автоматически:"
+  warn "  Конфиг: ${CONFIG_DIR}"
+  warn "  Данные: ${DATA_DIR}"
+  echo ""
+  read -r -p "$(echo -e "${YELLOW}[SubRadar]${NC} Удалить конфиг и данные? [y/N] ")" REMOVE_DATA
+  REMOVE_DATA=${REMOVE_DATA:-N}
+  if [[ "$REMOVE_DATA" =~ ^[Yy]$ ]]; then
+    rm -rf "$CONFIG_DIR" "$DATA_DIR"
+    success "Конфиг и данные удалены"
+  else
+    info "Конфиг и данные сохранены"
+  fi
+
+  echo ""
+  success "SubRadar успешно удалён"
+  echo ""
+  exit 0
+fi
+
 # --- Определяем версию и архитектуру ---
 ARCH=$(detect_arch)
 info "Архитектура: linux-${ARCH}"
 
-info "Получаем последнюю версию..."
-VERSION=$(get_latest_version)
-info "Версия: ${VERSION}"
-
-BINARY_FILE="${BINARY_NAME}-linux-${ARCH}"
-DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${VERSION}/${BINARY_FILE}"
-
-# --- Скачиваем бинарник ---
-info "Скачиваем бинарник..."
-TMP_FILE=$(mktemp)
-if ! curl -fsSL "$DOWNLOAD_URL" -o "$TMP_FILE"; then
-  rm -f "$TMP_FILE"
-  error "Не удалось скачать бинарник. URL: ${DOWNLOAD_URL}"
-fi
-
-# --- Верифицируем checksum ---
-info "Проверяем контрольную сумму..."
-CHECKSUMS_URL="https://github.com/${REPO}/releases/download/${VERSION}/checksums.txt"
-CHECKSUMS_FILE=$(mktemp)
-if curl -fsSL "$CHECKSUMS_URL" -o "$CHECKSUMS_FILE" 2>/dev/null; then
-  EXPECTED=$(grep "$BINARY_FILE" "$CHECKSUMS_FILE" | awk '{print $1}')
-  ACTUAL=$(sha256sum "$TMP_FILE" | awk '{print $1}')
-  if [ "$EXPECTED" != "$ACTUAL" ]; then
-    rm -f "$TMP_FILE" "$CHECKSUMS_FILE"
-    error "Контрольная сумма не совпадает. Файл повреждён."
+if [ -n "$LOCAL_BINARY" ]; then
+  # --- Режим локального бинарника ---
+  if [ ! -f "$LOCAL_BINARY" ]; then
+    error "Файл не найден: ${LOCAL_BINARY}"
   fi
-  success "Контрольная сумма совпадает"
+  VERSION="local"
+  warn "Используем локальный бинарник: ${LOCAL_BINARY}"
+  info "Устанавливаем бинарник в ${INSTALL_DIR}/${BINARY_NAME}..."
+  install -m 755 "$LOCAL_BINARY" "${INSTALL_DIR}/${BINARY_NAME}"
+  success "Бинарник установлен"
 else
-  warn "Не удалось скачать checksums.txt, пропускаем проверку"
-fi
-rm -f "$CHECKSUMS_FILE"
+  # --- Режим скачивания с GitHub ---
+  info "Получаем последнюю версию..."
+  VERSION=$(get_latest_version)
+  info "Версия: ${VERSION}"
 
-# --- Устанавливаем бинарник ---
-info "Устанавливаем бинарник в ${INSTALL_DIR}/${BINARY_NAME}..."
-install -m 755 "$TMP_FILE" "${INSTALL_DIR}/${BINARY_NAME}"
-rm -f "$TMP_FILE"
-success "Бинарник установлен"
+  BINARY_FILE="${BINARY_NAME}-linux-${ARCH}"
+  DOWNLOAD_URL="https://github.com/${REPO}/releases/download/${VERSION}/${BINARY_FILE}"
+
+  info "Скачиваем бинарник..."
+  TMP_FILE=$(mktemp)
+  if ! curl -fsSL "$DOWNLOAD_URL" -o "$TMP_FILE"; then
+    rm -f "$TMP_FILE"
+    error "Не удалось скачать бинарник. URL: ${DOWNLOAD_URL}"
+  fi
+
+  info "Проверяем контрольную сумму..."
+  CHECKSUMS_URL="https://github.com/${REPO}/releases/download/${VERSION}/checksums.txt"
+  CHECKSUMS_FILE=$(mktemp)
+  if curl -fsSL "$CHECKSUMS_URL" -o "$CHECKSUMS_FILE" 2>/dev/null; then
+    EXPECTED=$(grep "$BINARY_FILE" "$CHECKSUMS_FILE" | awk '{print $1}')
+    ACTUAL=$(sha256sum "$TMP_FILE" | awk '{print $1}')
+    if [ "$EXPECTED" != "$ACTUAL" ]; then
+      rm -f "$TMP_FILE" "$CHECKSUMS_FILE"
+      error "Контрольная сумма не совпадает. Файл повреждён."
+    fi
+    success "Контрольная сумма совпадает"
+  else
+    warn "Не удалось скачать checksums.txt, пропускаем проверку"
+  fi
+  rm -f "$CHECKSUMS_FILE"
+
+  info "Устанавливаем бинарник в ${INSTALL_DIR}/${BINARY_NAME}..."
+  install -m 755 "$TMP_FILE" "${INSTALL_DIR}/${BINARY_NAME}"
+  rm -f "$TMP_FILE"
+  success "Бинарник установлен"
+fi
 
 # --- Создаём системного пользователя ---
 if ! id "$SERVICE_USER" &>/dev/null; then
