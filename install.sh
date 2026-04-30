@@ -141,7 +141,7 @@ if [ "$UNINSTALL" = true ]; then
   warn "  Конфиг: ${CONFIG_DIR}"
   warn "  Данные: ${DATA_DIR}"
   echo ""
-  read -r -p "$(echo -e "${YELLOW}[SubRadar]${NC} Удалить конфиг и данные? [y/N] ")" REMOVE_DATA
+  read -r -p "$(echo -e "${YELLOW}[SubRadar]${NC} Удалить конфиг и данные? [y/N] ")" REMOVE_DATA </dev/tty
   REMOVE_DATA=${REMOVE_DATA:-N}
   if [[ "$REMOVE_DATA" =~ ^[Yy]$ ]]; then
     rm -rf "$CONFIG_DIR" "$DATA_DIR"
@@ -254,7 +254,7 @@ fi
 
 # --- Предлагаем установить systemd ---
 echo ""
-read -r -p "$(echo -e "${YELLOW}[SubRadar]${NC} Установить systemd-сервис для автозапуска? [Y/n] ")" INSTALL_SYSTEMD
+read -r -p "$(echo -e "${YELLOW}[SubRadar]${NC} Установить systemd-сервис для автозапуска? [Y/n] ")" INSTALL_SYSTEMD </dev/tty
 INSTALL_SYSTEMD=${INSTALL_SYSTEMD:-Y}
 
 if [[ "$INSTALL_SYSTEMD" =~ ^[Yy]$ ]]; then
