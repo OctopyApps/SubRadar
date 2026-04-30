@@ -5,6 +5,9 @@ on:
     tags:
       - "v*"
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   # ─── Бэкенд ────────────────────────────────────────────────────────────────
   backend:
@@ -20,6 +23,7 @@ jobs:
         uses: actions/setup-go@v5
         with:
           go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
 
       - name: Build binaries
         working-directory: backend
