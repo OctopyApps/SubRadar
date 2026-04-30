@@ -1,0 +1,65 @@
+name: Backend Release
+
+on:
+  push:
+    tags:
+      - "backend/v*"
+
+jobs:
+  build:
+    name: Build & Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+
+      - name: Extract version
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#backend/}" >> $GITHUB_OUTPUT
+
+      - name: Build binaries
+        working-directory: backend
+        run: |
+          mkdir -p dist
+
+          GOOS=linux   GOARCH=amd64  go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o dist/subradar-linux-amd64       ./cmd/server
+          GOOS=linux   GOARCH=arm64  go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o dist/subradar-linux-arm64       ./cmd/server
+          GOOS=darwin  GOARCH=arm64  go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o dist/subradar-darwin-arm64      ./cmd/server
+          GOOS=darwin  GOARCH=amd64  go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o dist/subradar-darwin-amd64      ./cmd/server
+          GOOS=windows GOARCH=amd64  go build -ldflags="-s -w -X main.version=${{ steps.version.outputs.version }}" -o dist/subradar-windows-amd64.exe ./cmd/server
+
+      - name: Generate checksums
+        working-directory: backend/dist
+        run: sha256sum * > checksums.txt
+
+      - name: Read release notes
+        id: notes
+        run: |
+          NOTES_FILE="docs/UserDocs/ReleaseNotes/BackEndReleaseNotes/${{ steps.version.outputs.version }}.md"
+          if [ -f "$NOTES_FILE" ]; then
+            echo "body<<EOF" >> $GITHUB_OUTPUT
+            cat "$NOTES_FILE" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "body=No release notes found for ${{ steps.version.outputs.version }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "Backend ${{ steps.version.outputs.version }}"
+          tag_name: ${{ github.ref_name }}
+          body: ${{ steps.notes.outputs.body }}
+          files: |
+            backend/dist/subradar-linux-amd64
+            backend/dist/subradar-linux-arm64
+            backend/dist/subradar-darwin-arm64
+            backend/dist/subradar-darwin-amd64
+            backend/dist/subradar-windows-amd64.exe
+            backend/dist/checksums.txt

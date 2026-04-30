@@ -9,7 +9,7 @@ import Foundation
 
 /// Тег — свободный текст, создаётся пользователем.
 /// Хранится отдельно чтобы поддерживать автодополнение по всем существующим тегам.
-struct Tag: Identifiable, Hashable {
+struct Tag: Identifiable, Hashable, Codable {
     let id: UUID
     var name: String
 

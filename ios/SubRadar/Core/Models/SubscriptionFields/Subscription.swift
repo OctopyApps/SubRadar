@@ -13,7 +13,7 @@ import Foundation
 
 // MARK: - Subscription
 
-struct Subscription: Identifiable {
+struct Subscription: Identifiable, Codable {
     let id: UUID
     var name: String
     var category: AppCategory
@@ -57,6 +57,29 @@ struct Subscription: Identifiable {
         self.url = url
         self.imageData = imageData
     }
+
+    // MARK: - Codable
+
+    // Маппим snake_case полей API на camelCase свойств модели.
+    // AppCategory и AppCurrency кодируются/декодируются через отдельное несоответствие —
+    // см. их расширения Codable ниже.
+    enum CodingKeys: String, CodingKey {
+        case id
+        case name
+        case category
+        case price
+        case currency
+        case billingPeriod   = "billing_period"
+        case color
+        case iconName        = "icon_name"
+        case startDate       = "start_date"
+        case nextBillingDate = "next_billing_date"
+        case tag
+        case url
+        case imageData       = "image_data"
+    }
+
+    // MARK: - Computed
 
     var monthlyPrice: Double {
         switch billingPeriod {

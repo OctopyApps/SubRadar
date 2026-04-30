@@ -7,7 +7,7 @@
 
 import Foundation
 
-/// Единый интерфейс для работы с подписками и тегами.
+/// Единый интерфейс для работы с данными.
 /// ViewModel знает только про этот протокол — не важно, SwiftData это, сервер или что-то ещё.
 protocol StorageService: AnyObject {
 
@@ -24,6 +24,20 @@ protocol StorageService: AnyObject {
     /// Сохраняет тег если его ещё нет (идемпотентно по имени)
     func saveTagIfNeeded(name: String) async throws -> Tag
     func deleteTag(_ tag: Tag) async throws
+
+    // MARK: Categories
+    // Только пользовательские категории — дефолты захардкожены на клиенте.
+
+    func fetchCategories() async throws -> [AppCategory]
+    func saveCategory(_ category: AppCategory) async throws -> AppCategory
+    func deleteCategory(_ category: AppCategory) async throws
+
+    // MARK: Currencies
+    // Только пользовательские валюты — дефолты захардкожены на клиенте.
+
+    func fetchCurrencies() async throws -> [AppCurrency]
+    func saveCurrency(_ currency: AppCurrency) async throws -> AppCurrency
+    func deleteCurrency(_ currency: AppCurrency) async throws
 }
 
 // MARK: - Errors

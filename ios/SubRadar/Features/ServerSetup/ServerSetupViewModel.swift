@@ -21,46 +21,51 @@ final class ServerSetupViewModel: ObservableObject {
         self.mode = mode
     }
 
+    // MARK: - Intents
+
     func connect(appState: AppState) {
+        guard validate() else { return }
         errorMessage = nil
-
-        guard !host.isEmpty else {
-            errorMessage = "Введите адрес сервера"
-            return
-        }
-        guard isValidHost(host) else {
-            errorMessage = "Некорректный адрес (пример: 192.168.1.1 или myserver.com)"
-            return
-        }
-        guard let portNumber = Int(port), (1...65535).contains(portNumber) else {
-            errorMessage = "Порт должен быть числом от 1 до 65535"
-            return
-        }
-        guard !secret.isEmpty else {
-            errorMessage = "Введите секретный ключ"
-            return
-        }
-
         isLoading = true
+
+        let portNumber = Int(port)!
+        let serverConfig = ServerConfiguration.selfHosted(host: host.trimmingCharacters(in: .whitespaces),
+                                                          port: portNumber)
+        let service = AuthService(baseURL: serverConfig.baseURL)
 
         Task {
             do {
-                let token = try await checkConnection(
-                    host: host,
-                    port: portNumber,
-                    secret: secret
-                )
+                let token = try await service.selfHosted(secret: secret)
                 isLoading = false
-                let serverConfiguration = ServerConfiguration.selfHosted(host: host, port: portNumber)
-                appState.completeAuth(mode: mode, token: token, serverConfiguration: serverConfiguration)
+                appState.completeAuth(mode: mode, token: token, serverConfiguration: serverConfig)
             } catch {
                 isLoading = false
-                errorMessage = mapError(error)
+                errorMessage = AuthError.from(error)
             }
         }
     }
 
     // MARK: - Private
+
+    private func validate() -> Bool {
+        guard !host.isEmpty else {
+            errorMessage = "Введите адрес сервера"
+            return false
+        }
+        guard isValidHost(host) else {
+            errorMessage = "Некорректный адрес (пример: 192.168.1.1 или myserver.com)"
+            return false
+        }
+        guard let portNumber = Int(port), (1...65535).contains(portNumber) else {
+            errorMessage = "Порт должен быть числом от 1 до 65535"
+            return false
+        }
+        guard !secret.isEmpty else {
+            errorMessage = "Введите секретный ключ"
+            return false
+        }
+        return true
+    }
 
     private func isValidHost(_ host: String) -> Bool {
         let trimmed = host.trimmingCharacters(in: .whitespaces)
@@ -68,72 +73,18 @@ final class ServerSetupViewModel: ObservableObject {
         let allowed = CharacterSet.alphanumerics.union(CharacterSet(charactersIn: ".-_"))
         return trimmed.unicodeScalars.allSatisfy { allowed.contains($0) }
     }
-
-    private func checkConnection(host: String, port: Int, secret: String) async throws -> String? {
-        guard let url = ServerConfiguration.selfHosted(host: host, port: port).authURL else {
-            throw ServerSetupError.badURL
-        }
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.timeoutInterval = 10
-
-        let body = ServerAuthBody(secret: secret)
-        request.httpBody = try JSONEncoder().encode(body)
-
-        let (data, response) = try await URLSession.shared.data(for: request)
-
-        guard let http = response as? HTTPURLResponse else {
-            throw ServerSetupError.invalidResponse
-        }
-
-        switch http.statusCode {
-        case 200:
-            let decoded = try JSONDecoder().decode(ServerAuthResponse.self, from: data)
-            return decoded.token
-        case 401:
-            throw ServerSetupError.wrongSecret
-        case 500...:
-            throw ServerSetupError.serverError
-        default:
-            throw ServerSetupError.invalidResponse
-        }
-    }
-
-    private func mapError(_ error: Error) -> String {
-        if let e = error as? ServerSetupError { return e.message }
-        if let e = error as? URLError {
-            switch e.code {
-            case .notConnectedToInternet: return "Нет подключения к интернету"
-            case .timedOut:               return "Сервер не отвечает — проверьте адрес и порт"
-            case .cannotConnectToHost:    return "Не удалось подключиться к серверу"
-            default:                      return "Ошибка сети"
-            }
-        }
-        return "Неизвестная ошибка"
-    }
 }
 
-// MARK: - Models
+// MARK: - ServerSetupError
+// Оставляем для совместимости если используется в других местах
 
-private struct ServerAuthBody: Encodable {
-    let secret: String
-}
-
-private struct ServerAuthResponse: Decodable {
-    let token: String
-}
-
-// MARK: - Errors
-
-enum ServerSetupError: Error {
+enum ServerSetupError: LocalizedError {
     case badURL
     case invalidResponse
     case wrongSecret
     case serverError
 
-    var message: String {
+    var errorDescription: String? {
         switch self {
         case .badURL:           return "Неверный адрес сервера"
         case .invalidResponse:  return "Неожиданный ответ сервера"

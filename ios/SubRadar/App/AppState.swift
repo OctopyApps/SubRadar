@@ -58,15 +58,17 @@ final class AppState: ObservableObject {
     }
 
     // MARK: - Currencies
+    // Содержит дефолты + пользовательские. Пользовательские синхронизируются с сервером.
 
     @Published var currencies: [AppCurrency] {
-        didSet { save(currencies, forKey: "currencies") }
+        didSet { saveCustomCurrencies() }
     }
 
     // MARK: - Categories
+    // Содержит дефолты + пользовательские. Пользовательские синхронизируются с сервером.
 
     @Published var categories: [AppCategory] {
-        didSet { save(categories, forKey: "categories") }
+        didSet { saveCustomCategories() }
     }
 
     var filterCategories: [AppCategory] { [.all] + categories }
@@ -77,7 +79,6 @@ final class AppState: ObservableObject {
         didSet { save(notificationSettings, forKey: "notificationSettings") }
     }
 
-    /// Статус разрешения — обновляется при запуске и при открытии экрана уведомлений
     @Published var notificationAuthorizationGranted: Bool = false
 
     private let defaults = UserDefaultsService.shared
@@ -92,10 +93,56 @@ final class AppState: ObservableObject {
         let schemePref = UserDefaults.standard.string(forKey: "colorSchemePreference") ?? "system"
         colorSchemePreference = ColorSchemePreference(rawValue: schemePref) ?? .system
 
-        currencies = Self.load([AppCurrency].self, forKey: "currencies") ?? AppCurrency.defaults
-        categories = Self.load([AppCategory].self, forKey: "categories") ?? AppCategory.defaults
+        // Загружаем: дефолты + сохранённые пользовательские
+        let customCurrencies = Self.load([AppCurrency].self, forKey: "custom_currencies") ?? []
+        currencies = Self.merged(defaults: AppCurrency.defaults, custom: customCurrencies)
+
+        let customCategories = Self.load([AppCategory].self, forKey: "custom_categories") ?? []
+        categories = Self.merged(defaults: AppCategory.defaults, custom: customCategories)
+
         notificationSettings = Self.load(NotificationSettings.self, forKey: "notificationSettings") ?? .default
         selectedIconName = UserDefaults.standard.string(forKey: "selectedIconName")
+    }
+
+    // MARK: - Merge helpers
+
+    /// Мерджит дефолты и пользовательские — дефолты всегда первые, дубли по id исключены.
+    private static func merged<T: Identifiable>(defaults: [T], custom: [T]) -> [T] where T.ID == UUID {
+        let defaultIDs = Set(defaults.map(\.id))
+        let onlyCustom = custom.filter { !defaultIDs.contains($0.id) }
+        return defaults + onlyCustom
+    }
+
+    /// Загружает пользовательские категории с сервера и мерджит с дефолтами.
+    func syncCategories(from storage: any StorageService) async {
+        guard let serverCategories = try? await storage.fetchCategories() else { return }
+        let customCategories = serverCategories.filter { !$0.isDefault }
+        let defaultIDs = Set(AppCategory.defaults.map(\.id))
+        let merged = AppCategory.defaults + customCategories.filter { !defaultIDs.contains($0.id) }
+        categories = merged
+        saveCustomCategories()
+    }
+
+    /// Загружает пользовательские валюты с сервера и мерджит с дефолтами.
+    func syncCurrencies(from storage: any StorageService) async {
+        guard let serverCurrencies = try? await storage.fetchCurrencies() else { return }
+        let customCurrencies = serverCurrencies.filter { !$0.isDefault }
+        let defaultIDs = Set(AppCurrency.defaults.map(\.id))
+        let merged = AppCurrency.defaults + customCurrencies.filter { !defaultIDs.contains($0.id) }
+        currencies = merged
+        saveCustomCurrencies()
+    }
+
+    // MARK: - Сохранение (только пользовательские, без дефолтов)
+
+    private func saveCustomCurrencies() {
+        let custom = currencies.filter { !$0.isDefault }
+        save(custom, forKey: "custom_currencies")
+    }
+
+    private func saveCustomCategories() {
+        let custom = categories.filter { !$0.isDefault }
+        save(custom, forKey: "custom_categories")
     }
 
     // MARK: - Notification permission
@@ -119,11 +166,14 @@ final class AppState: ObservableObject {
     }
 
     func removeCurrency(_ currency: AppCurrency) {
-        guard currencies.count > 1 else { return }
+        guard !currency.isDefault, currencies.count > 1 else { return }
         currencies.removeAll { $0.id == currency.id }
     }
 
     func removeCurrency(at offsets: IndexSet) {
+        // Не даём удалить дефолтные через свайп
+        let toRemove = offsets.compactMap { currencies.indices.contains($0) ? currencies[$0] : nil }
+        guard toRemove.allSatisfy({ !$0.isDefault }) else { return }
         guard currencies.count - offsets.count >= 1 else { return }
         currencies.remove(atOffsets: offsets)
     }
@@ -136,11 +186,13 @@ final class AppState: ObservableObject {
     }
 
     func removeCategory(_ category: AppCategory) {
-        guard categories.count > 1 else { return }
+        guard !category.isDefault, categories.count > 1 else { return }
         categories.removeAll { $0.id == category.id }
     }
 
     func removeCategory(at offsets: IndexSet) {
+        let toRemove = offsets.compactMap { categories.indices.contains($0) ? categories[$0] : nil }
+        guard toRemove.allSatisfy({ !$0.isDefault }) else { return }
         guard categories.count - offsets.count >= 1 else { return }
         categories.remove(atOffsets: offsets)
     }
@@ -208,10 +260,9 @@ final class AppState: ObservableObject {
     private func save<T: Encodable>(_ value: T, forKey key: String) {
         UserDefaults.standard.set(try? JSONEncoder().encode(value), forKey: key)
     }
-    
+
     // MARK: - Icon
 
-    /// nil = основная иконка
     @Published var selectedIconName: String? {
         didSet { UserDefaults.standard.set(selectedIconName, forKey: "selectedIconName") }
     }

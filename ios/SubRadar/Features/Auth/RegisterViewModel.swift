@@ -21,62 +21,56 @@ final class RegisterViewModel: ObservableObject {
         self.mode = mode
     }
 
+    // MARK: - Intents
+
     func register(appState: AppState) {
+        guard validate() else { return }
         errorMessage = nil
-
-        guard !email.isEmpty, !password.isEmpty, !passwordConfirm.isEmpty else {
-            errorMessage = "Заполните все поля"
-            return
-        }
-        guard password == passwordConfirm else {
-            errorMessage = "Пароли не совпадают"
-            return
-        }
-        guard password.count >= 8 else {
-            errorMessage = "Пароль должен быть не менее 8 символов"
-            return
-        }
-
         isLoading = true
 
         Task {
             do {
-                try await registerRequest(email: email, password: password)
-                await MainActor.run {
-                    isLoading = false
-                    // Сохраняем конфигурацию и идём на главный экран
-                    appState.completeAuth(mode: mode)
-                }
+                let service = makeAuthService(appState: appState)
+                let token = try await service.register(
+                    email: email.lowercased().trimmingCharacters(in: .whitespaces),
+                    password: password
+                )
+                isLoading = false
+                // После регистрации сразу авторизуем — токен уже есть
+                appState.completeAuth(mode: mode, token: token)
             } catch {
-                await MainActor.run {
-                    isLoading = false
-                    errorMessage = error.localizedDescription
-                }
+                isLoading = false
+                errorMessage = AuthError.from(error)
             }
         }
     }
 
-    private func registerRequest(email: String, password: String) async throws {
-        // Заглушка на эндпоинт /register
-        // Потом заменим на реальный URL сервера из конфигурации
-        guard let url = URL(string: "https://api.subradar.io/register") else {
-            throw URLError(.badURL)
+    // MARK: - Private
+
+    private func validate() -> Bool {
+        guard !email.isEmpty, !password.isEmpty, !passwordConfirm.isEmpty else {
+            errorMessage = "Заполните все поля"
+            return false
         }
+        guard NSPredicate(format: "SELF MATCHES %@",
+            "[A-Z0-9a-z._%+\\-]+@[A-Za-z0-9.\\-]+\\.[A-Za-z]{2,}")
+            .evaluate(with: email) else {
+            errorMessage = "Введите корректный email"
+            return false
+        }
+        guard password == passwordConfirm else {
+            errorMessage = "Пароли не совпадают"
+            return false
+        }
+        guard password.count >= 8 else {
+            errorMessage = "Пароль должен быть не менее 8 символов"
+            return false
+        }
+        return true
+    }
 
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-
-        let body = ["email": email, "password": password]
-        request.httpBody = try JSONEncoder().encode(body)
-
-        // Симулируем задержку сети пока нет реального сервера
-        try await Task.sleep(nanoseconds: 1_000_000_000)
-
-        // Когда будет реальный сервер — раскомментируй:
-        // let (_, response) = try await URLSession.shared.data(for: request)
-        // guard let http = response as? HTTPURLResponse, http.statusCode == 201 else {
-        //     throw URLError(.badServerResponse)
-        // }
+    private func makeAuthService(appState: AppState) -> AuthService {
+        let config = UserDefaultsService.shared.configuration?.serverConfiguration ?? .shared()
+        return AuthService(baseURL: config.baseURL)
     }
 }

@@ -7,7 +7,7 @@ set -euo pipefail
 # Usage (local binary): sudo bash install.sh --local /tmp/subradar
 # =============================================================================
 
-REPO="OctopyApps/SubRadar-BackEnd"
+REPO="OctopyApps/SubRadar"
 BINARY_NAME="subradar"
 INSTALL_DIR="/usr/local/bin"
 CONFIG_DIR="/etc/subradar"
@@ -69,8 +69,12 @@ detect_arch() {
 # --- Получение последней версии с GitHub ---
 get_latest_version() {
   local version
-  version=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases/latest" \
+  # Берём все релизы и фильтруем только теги backend/v*
+  # Возвращаем полный тег (backend/v0.1.2) — он используется в URL скачивания
+  version=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases" \
     | grep '"tag_name"' \
+    | grep 'backend/' \
+    | head -1 \
     | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
   if [ -z "$version" ]; then
     error "Не удалось получить последнюю версию с GitHub. Проверьте интернет-соединение."

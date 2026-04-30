@@ -1,0 +1,113 @@
+name: Major Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  # ─── Бэкенд ────────────────────────────────────────────────────────────────
+  backend:
+    name: Build Backend
+    runs-on: ubuntu-latest
+    if: "!startsWith(github.ref_name, 'ios/') && !startsWith(github.ref_name, 'backend/')"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+
+      - name: Build binaries
+        working-directory: backend
+        run: |
+          mkdir -p dist
+
+          GOOS=linux   GOARCH=amd64  go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" -o dist/subradar-linux-amd64       ./cmd/server
+          GOOS=linux   GOARCH=arm64  go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" -o dist/subradar-linux-arm64       ./cmd/server
+          GOOS=darwin  GOARCH=arm64  go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" -o dist/subradar-darwin-arm64      ./cmd/server
+          GOOS=darwin  GOARCH=amd64  go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" -o dist/subradar-darwin-amd64      ./cmd/server
+          GOOS=windows GOARCH=amd64  go build -ldflags="-s -w -X main.version=${{ github.ref_name }}" -o dist/subradar-windows-amd64.exe ./cmd/server
+
+      - name: Generate checksums
+        working-directory: backend/dist
+        run: sha256sum * > checksums.txt
+
+      - name: Upload backend artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backend-binaries
+          path: backend/dist/
+
+  # ─── iOS ───────────────────────────────────────────────────────────────────
+  ios:
+    name: Build iOS
+    runs-on: macos-latest
+    if: "!startsWith(github.ref_name, 'ios/') && !startsWith(github.ref_name, 'backend/')"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Build archive
+        working-directory: ios
+        run: |
+          xcodebuild archive \
+            -project SubRadar/SubRadar.xcodeproj \
+            -scheme SubRadar \
+            -configuration Release \
+            -archivePath build/SubRadar.xcarchive \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            CURRENT_PROJECT_VERSION=${{ github.ref_name }}
+
+  # ─── Релиз ─────────────────────────────────────────────────────────────────
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: [backend, ios]
+    if: "!startsWith(github.ref_name, 'ios/') && !startsWith(github.ref_name, 'backend/')"
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Download backend artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: backend-binaries
+          path: backend/dist/
+
+      - name: Read release notes
+        id: notes
+        run: |
+          NOTES_FILE="docs/UserDocs/ReleaseNotes/MajorReleaseNotes/${{ github.ref_name }}.md"
+          if [ -f "$NOTES_FILE" ]; then
+            echo "body<<EOF" >> $GITHUB_OUTPUT
+            cat "$NOTES_FILE" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "body=No release notes found for ${{ github.ref_name }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "SubRadar ${{ github.ref_name }}"
+          tag_name: ${{ github.ref_name }}
+          body: ${{ steps.notes.outputs.body }}
+          files: |
+            backend/dist/subradar-linux-amd64
+            backend/dist/subradar-linux-arm64
+            backend/dist/subradar-darwin-arm64
+            backend/dist/subradar-darwin-amd64
+            backend/dist/subradar-windows-amd64.exe
+            backend/dist/checksums.txt
