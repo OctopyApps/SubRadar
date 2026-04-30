@@ -1,0 +1,55 @@
+name: iOS Release
+
+on:
+  push:
+    tags:
+      - "ios/v*"
+
+jobs:
+  build:
+    name: Build & Release
+    runs-on: macos-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Extract version
+        id: version
+        run: echo "version=${GITHUB_REF_NAME#ios/}" >> $GITHUB_OUTPUT
+
+      - name: Set up Xcode
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+
+      - name: Build archive
+        working-directory: ios
+        run: |
+          xcodebuild archive \
+            -project SubRadar/SubRadar.xcodeproj \
+            -scheme SubRadar \
+            -configuration Release \
+            -archivePath build/SubRadar.xcarchive \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            CURRENT_PROJECT_VERSION=${{ steps.version.outputs.version }}
+
+      - name: Read release notes
+        id: notes
+        run: |
+          NOTES_FILE="docs/UserDocs/ReleaseNotes/iOSReleaseNotes/${{ steps.version.outputs.version }}.md"
+          if [ -f "$NOTES_FILE" ]; then
+            echo "body<<EOF" >> $GITHUB_OUTPUT
+            cat "$NOTES_FILE" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "body=No release notes found for ${{ steps.version.outputs.version }}" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: "iOS ${{ steps.version.outputs.version }}"
+          tag_name: ${{ github.ref_name }}
+          body: ${{ steps.notes.outputs.body }}

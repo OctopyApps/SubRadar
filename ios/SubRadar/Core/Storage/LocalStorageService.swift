@@ -233,6 +233,45 @@ final class LocalStorageService: StorageService {
         try saveContext()
     }
 
+    // MARK: - Categories
+    // В локальном режиме категории живут в AppState (UserDefaults).
+    // StorageService-методы просто проксируют туда — единый интерфейс для всех режимов.
+
+    func fetchCategories() async throws -> [AppCategory] {
+        // Возвращаем только пользовательские — дефолты AppState добавляет сам при мерже
+        return appState?.categories.filter { !$0.isDefault } ?? []
+    }
+
+    func saveCategory(_ category: AppCategory) async throws -> AppCategory {
+        guard let appState else { return category }
+        appState.addCategory(category)
+        return category
+    }
+
+    func deleteCategory(_ category: AppCategory) async throws {
+        guard !category.isDefault else { return }
+        appState?.removeCategory(category)
+    }
+
+    // MARK: - Currencies
+    // Аналогично категориям — живут в AppState (UserDefaults).
+
+    func fetchCurrencies() async throws -> [AppCurrency] {
+        // Возвращаем только пользовательские — дефолты AppState добавляет сам при мерже
+        return appState?.currencies.filter { !$0.isDefault } ?? []
+    }
+
+    func saveCurrency(_ currency: AppCurrency) async throws -> AppCurrency {
+        guard let appState else { return currency }
+        appState.addCurrency(currency)
+        return currency
+    }
+
+    func deleteCurrency(_ currency: AppCurrency) async throws {
+        guard !currency.isDefault else { return }
+        appState?.removeCurrency(currency)
+    }
+
     // MARK: - Private
 
     private func saveContext() throws {
