@@ -58,14 +58,28 @@ detect_arch() {
 # --- Получение последней версии с GitHub ---
 get_latest_version() {
   local version
-  version=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases" \
+  local all_tags
+
+  all_tags=$(curl -fsSL "https://api.github.com/repos/${REPO}/releases" \
     | grep '"tag_name"' \
-    | grep 'backend/' \
-    | head -1 \
     | sed -E 's/.*"tag_name": *"([^"]+)".*/\1/')
-  if [ -z "$version" ]; then
-    error "Не удалось получить последнюю версию с GitHub. Проверьте интернет-соединение."
+
+  if [ -z "$all_tags" ]; then
+    error "Не удалось получить список релизов с GitHub. Проверьте интернет-соединение."
   fi
+
+  # Сначала ищем специфичный тег backend/v* — патчи только бэкенда
+  version=$(echo "$all_tags" | grep '^backend/' | head -1)
+
+  # Если нет — берём мажорный тег v* (затрагивает все компоненты)
+  if [ -z "$version" ]; then
+    version=$(echo "$all_tags" | grep -v '/' | grep '^v' | head -1)
+  fi
+
+  if [ -z "$version" ]; then
+    error "Не удалось найти подходящий релиз бэкенда."
+  fi
+
   echo "$version"
 }
 
