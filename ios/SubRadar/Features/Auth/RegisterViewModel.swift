@@ -71,6 +71,9 @@ final class RegisterViewModel: ObservableObject {
 
     private func makeAuthService(appState: AppState) -> AuthService {
         let config = UserDefaultsService.shared.configuration?.serverConfiguration ?? .shared()
-        return AuthService(baseURL: config.baseURL)
+        return AuthService(
+            baseURL: config.baseURL,
+            session: URLSessionFactory.session(for: mode)
+        )
     }
 }

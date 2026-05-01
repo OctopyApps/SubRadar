@@ -51,9 +51,12 @@ final class APIClient {
         return e
     }()
 
-    init(baseURL: String, tokenProvider: @escaping () -> String?) {
+    private let session: URLSession
+
+    init(baseURL: String, tokenProvider: @escaping () -> String?, session: URLSession = .shared) {
         self.baseURL = baseURL
         self.tokenProvider = tokenProvider
+        self.session = session
     }
 
     // MARK: - Public: с телом ответа
@@ -103,7 +106,7 @@ final class APIClient {
     }
 
     private func perform<Response: Decodable>(_ request: URLRequest) async throws -> Response {
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await session.data(for: request)
         try validateResponse(response, data: data)
         do {
             return try decoder.decode(Response.self, from: data)
@@ -113,7 +116,7 @@ final class APIClient {
     }
 
     private func performVoid(_ request: URLRequest) async throws {
-        let (data, response) = try await URLSession.shared.data(for: request)
+        let (data, response) = try await session.data(for: request)
         try validateResponse(response, data: data)
     }
 

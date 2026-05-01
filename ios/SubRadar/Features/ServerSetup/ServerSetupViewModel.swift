@@ -31,7 +31,7 @@ final class ServerSetupViewModel: ObservableObject {
         let portNumber = Int(port)!
         let serverConfig = ServerConfiguration.selfHosted(host: host.trimmingCharacters(in: .whitespaces),
                                                           port: portNumber)
-        let service = AuthService(baseURL: serverConfig.baseURL)
+        let service = AuthService(baseURL: serverConfig.baseURL, session: URLSessionFactory.selfHosted)
 
         Task {
             do {

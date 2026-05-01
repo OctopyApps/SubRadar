@@ -12,10 +12,11 @@ final class RemoteStorageService: StorageService {
 
     private let api: APIClient
 
-    init(serverConfiguration: ServerConfiguration) {
+    init(serverConfiguration: ServerConfiguration, storageMode: StorageMode) {
         self.api = APIClient(
             baseURL: serverConfiguration.baseURL,
-            tokenProvider: { KeychainService.shared.token() }
+            tokenProvider: { KeychainService.shared.token() },
+            session: URLSessionFactory.session(for: storageMode)
         )
     }
 
@@ -142,6 +143,15 @@ final class RemoteStorageService: StorageService {
         } catch let e as APIError {
             throw e.toStorageError()
         }
+    }
+
+    // MARK: - Migration
+
+    func clearAll() async throws {
+        // На удалённом сервере данные не трогаем при смене режима —
+        // они остаются на сервере и будут доступны при следующем входе.
+        // Очищаем только локальный токен.
+        KeychainService.shared.deleteToken()
     }
 }
 

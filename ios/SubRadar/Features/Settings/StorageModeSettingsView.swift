@@ -233,6 +233,10 @@ struct StorageModeSettingsView: View {
     private func applySwitch(to mode: StorageMode, migrate: Bool) async {
         isMigrating = migrate && !subscriptionsToMigrate.isEmpty
 
+        // Сохраняем ссылку на старое хранилище до смены конфига
+        let oldConfig = UserDefaultsService.shared.configuration ?? .local()
+        let oldStorage = StorageServiceFactory.make(for: oldConfig, appState: appState)
+
         // Записываем новый конфиг
         switch mode {
         case .local:
@@ -247,10 +251,13 @@ struct StorageModeSettingsView: View {
         // Переносим подписки если нужно
         if migrate && !subscriptionsToMigrate.isEmpty {
             let newConfig = UserDefaultsService.shared.configuration ?? .local()
-            let newStorage = StorageServiceFactory.make(for: newConfig)
+            let newStorage = StorageServiceFactory.make(for: newConfig, appState: appState)
             for sub in subscriptionsToMigrate {
                 try? await newStorage.save(sub)
             }
+        } else {
+            // Начать чисто — очищаем старое хранилище
+            try? await oldStorage.clearAll()
         }
 
         isMigrating = false

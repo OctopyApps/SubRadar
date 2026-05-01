@@ -14,7 +14,10 @@ enum StorageServiceFactory {
         case .local:
             return LocalStorageService(appState: appState)
         case .shared, .selfHosted:
-            return RemoteStorageService(serverConfiguration: config.serverConfiguration)
+            return RemoteStorageService(
+                serverConfiguration: config.serverConfiguration,
+                storageMode: config.storageMode
+            )
         }
     }
 }

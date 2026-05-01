@@ -272,6 +272,28 @@ final class LocalStorageService: StorageService {
         appState?.removeCurrency(currency)
     }
 
+    // MARK: - Migration
+
+    func clearAll() async throws {
+        // Удаляем все подписки
+        let subs = try context.fetch(FetchDescriptor<SubscriptionEntity>())
+        subs.forEach { context.delete($0) }
+
+        // Удаляем все теги
+        let tags = try context.fetch(FetchDescriptor<TagEntity>())
+        tags.forEach { context.delete($0) }
+
+        try saveContext()
+
+        // Сбрасываем пользовательские категории и валюты в AppState
+        appState?.categories = AppCategory.defaults
+        appState?.currencies = AppCurrency.defaults
+
+        // Очищаем UserDefaults
+        UserDefaults.standard.removeObject(forKey: "custom_categories")
+        UserDefaults.standard.removeObject(forKey: "custom_currencies")
+    }
+
     // MARK: - Private
 
     private func saveContext() throws {

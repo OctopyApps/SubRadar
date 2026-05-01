@@ -38,6 +38,12 @@ protocol StorageService: AnyObject {
     func fetchCurrencies() async throws -> [AppCurrency]
     func saveCurrency(_ currency: AppCurrency) async throws -> AppCurrency
     func deleteCurrency(_ currency: AppCurrency) async throws
+
+    // MARK: Migration
+
+    /// Удаляет все данные пользователя из хранилища.
+    /// Вызывается при смене режима когда пользователь выбирает "Начать чисто".
+    func clearAll() async throws
 }
 
 // MARK: - Errors

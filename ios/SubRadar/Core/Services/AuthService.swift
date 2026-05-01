@@ -16,8 +16,11 @@ final class AuthService {
     private let decoder = JSONDecoder()
     private let encoder = JSONEncoder()
 
-    init(baseURL: String) {
+    private let session: URLSession
+
+    init(baseURL: String, session: URLSession = .shared) {
         self.baseURL = baseURL
+        self.session = session
     }
 
     // MARK: - Public
@@ -56,7 +59,7 @@ final class AuthService {
         req.timeoutInterval = 10
         req.httpBody = try encoder.encode(body)
 
-        let (data, response) = try await URLSession.shared.data(for: req)
+        let (data, response) = try await session.data(for: req)
 
         guard let http = response as? HTTPURLResponse else {
             throw AuthError.invalidResponse
