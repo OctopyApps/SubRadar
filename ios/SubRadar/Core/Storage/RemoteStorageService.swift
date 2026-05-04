@@ -30,10 +30,10 @@ final class RemoteStorageService: StorageService {
         }
     }
 
-    func save(_ subscription: Subscription) async throws {
+    func save(_ subscription: Subscription) async throws -> Subscription {
         do {
             let body = SubscriptionRequest(from: subscription)
-            let _: Subscription = try await api.post("/subscriptions", body: body)
+            return try await api.post("/subscriptions", body: body)
         } catch let e as APIError {
             throw e.toStorageError()
         }

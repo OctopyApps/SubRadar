@@ -14,7 +14,7 @@ protocol StorageService: AnyObject {
     // MARK: Subscriptions
 
     func fetchSubscriptions() async throws -> [Subscription]
-    func save(_ subscription: Subscription) async throws
+    func save(_ subscription: Subscription) async throws -> Subscription
     func update(_ subscription: Subscription) async throws
     func delete(_ subscription: Subscription) async throws
 
