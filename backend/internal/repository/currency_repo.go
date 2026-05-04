@@ -31,9 +31,11 @@ func (r *CurrencyRepository) FindAllByUser(userID int64) ([]models.Currency, err
 	var currencies []models.Currency
 	for rows.Next() {
 		var c models.Currency
-		if err := rows.Scan(&c.ID, &c.UserID, &c.Code, &c.Symbol, &c.DisplayName, &c.CreatedAt); err != nil {
+		var createdAt time.Time
+		if err := rows.Scan(&c.ID, &c.UserID, &c.Code, &c.Symbol, &c.DisplayName, &createdAt); err != nil {
 			return nil, err
 		}
+		c.CreatedAt = models.RFC3339Seconds(createdAt)
 		currencies = append(currencies, c)
 	}
 	return currencies, rows.Err()
@@ -42,13 +44,15 @@ func (r *CurrencyRepository) FindAllByUser(userID int64) ([]models.Currency, err
 // FindOrCreate возвращает валюту по коду или создаёт новую (идемпотентно).
 func (r *CurrencyRepository) FindOrCreate(userID int64, code, symbol, displayName string) (models.Currency, error) {
 	var c models.Currency
+	var createdAt time.Time
 	err := r.db.QueryRow(
 		`SELECT id, user_id, code, symbol, display_name, created_at
 		 FROM currencies WHERE user_id = ? AND code = ?`,
 		userID, code,
-	).Scan(&c.ID, &c.UserID, &c.Code, &c.Symbol, &c.DisplayName, &c.CreatedAt)
+	).Scan(&c.ID, &c.UserID, &c.Code, &c.Symbol, &c.DisplayName, &createdAt)
 
 	if err == nil {
+		c.CreatedAt = models.RFC3339Seconds(createdAt)
 		return c, nil // нашли
 	}
 	if !errors.Is(err, sql.ErrNoRows) {
@@ -56,17 +60,18 @@ func (r *CurrencyRepository) FindOrCreate(userID int64, code, symbol, displayNam
 	}
 
 	// Создаём новую
+	now := time.Now()
 	c = models.Currency{
 		ID:          uuid.NewString(),
 		UserID:      userID,
 		Code:        code,
 		Symbol:      symbol,
 		DisplayName: displayName,
-		CreatedAt:   time.Now(),
+		CreatedAt:   models.RFC3339Seconds(now),
 	}
 	_, err = r.db.Exec(
 		`INSERT INTO currencies (id, user_id, code, symbol, display_name, created_at) VALUES (?, ?, ?, ?, ?, ?)`,
-		c.ID, c.UserID, c.Code, c.Symbol, c.DisplayName, c.CreatedAt,
+		c.ID, c.UserID, c.Code, c.Symbol, c.DisplayName, now,
 	)
 	return c, err
 }
