@@ -177,12 +177,13 @@ final class LocalStorageService: StorageService {
         }
     }
 
-    func save(_ subscription: Subscription) async throws {
+    func save(_ subscription: Subscription) async throws -> Subscription {
         context.insert(SubscriptionEntity(from: subscription))
         try saveContext()
         if let tag = subscription.tag {
             _ = try await saveTagIfNeeded(name: tag)
         }
+        return subscription
     }
 
     func update(_ subscription: Subscription) async throws {

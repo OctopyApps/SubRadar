@@ -41,7 +41,22 @@ final class APIClient {
 
     private let decoder: JSONDecoder = {
         let d = JSONDecoder()
-        d.dateDecodingStrategy = .iso8601
+        d.dateDecodingStrategy = .custom { decoder in
+            let container = try decoder.singleValueContainer()
+            let str = try container.decode(String.self)
+            // Сначала пробуем с дробными секундами (Go default: RFC3339Nano)
+            let formatterNano = ISO8601DateFormatter()
+            formatterNano.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+            if let date = formatterNano.date(from: str) { return date }
+            // Fallback: без дробных секунд
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = [.withInternetDateTime]
+            if let date = formatter.date(from: str) { return date }
+            throw DecodingError.dataCorruptedError(
+                in: container,
+                debugDescription: "Не удалось разобрать дату: \(str)"
+            )
+        }
         return d
     }()
 
@@ -111,6 +126,8 @@ final class APIClient {
         do {
             return try decoder.decode(Response.self, from: data)
         } catch {
+            print("🔴 DECODING ERROR: \(error)")
+            print("🔴 RAW JSON: \(String(data: data, encoding: .utf8) ?? "nil")")
             throw APIError.decodingError(underlying: error)
         }
     }

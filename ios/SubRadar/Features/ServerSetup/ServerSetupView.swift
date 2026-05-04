@@ -10,6 +10,7 @@ import SwiftUI
 struct ServerSetupView: View {
     let mode: StorageMode
     var onBack: (() -> Void)? = nil
+    var onConnected: ((_ token: String, _ serverConfig: ServerConfiguration) -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
     @EnvironmentObject private var appState: AppState
     @StateObject private var viewModel: ServerSetupViewModel
@@ -17,9 +18,11 @@ struct ServerSetupView: View {
 
     enum Field { case host, port, secret }
 
-    init(mode: StorageMode, onBack: (() -> Void)? = nil) {
+    init(mode: StorageMode, onBack: (() -> Void)? = nil,
+         onConnected: ((_ token: String, _ serverConfig: ServerConfiguration) -> Void)? = nil) {
         self.mode = mode
         self.onBack = onBack
+        self.onConnected = onConnected
         _viewModel = StateObject(wrappedValue: ServerSetupViewModel(mode: mode))
     }
 
@@ -204,6 +207,17 @@ struct ServerSetupView: View {
             }
         }
         .onTapGesture { focusedField = nil }
+        .onAppear {
+                    viewModel.onConnected = { token, serverConfig in
+                        if let onConnected {
+                            // Вызов из настроек — передаём управление наружу для алерта миграции
+                            onConnected(token, serverConfig)
+                        } else {
+                            // Вызов из онбординга — сразу переходим в main
+                            appState.completeAuth(mode: mode, token: token, serverConfiguration: serverConfig)
+                        }
+                    }
+                }
     }
 }
 

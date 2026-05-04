@@ -68,6 +68,9 @@ struct SubscriptionsView: View {
                 }
             }
             .coordinateSpace(name: "scroll")
+            .refreshable {
+                await viewModel.refresh()
+            }
             .onPreferenceChange(ScrollOffsetKey.self) { value in
                 withAnimation(.interactiveSpring(response: 0.3, dampingFraction: 0.8)) {
                     scrollOffset = value
@@ -312,6 +315,7 @@ private struct SubscriptionCard: View {
     let onDuplicate: () -> Void
     let onDelete: () -> Void
     @State private var isPressed = false
+    @State private var showDeleteConfirmation = false
 
     private var daysUntilBilling: Int {
         Calendar.current.dateComponents([.day], from: Date(), to: subscription.nextBillingDate).day ?? 0
@@ -381,10 +385,20 @@ private struct SubscriptionCard: View {
             Button(action: onEdit) { Label("Изменить", systemImage: "pencil") }
             Button(action: onDuplicate) { Label("Дублировать", systemImage: "plus.square.on.square") }
             Divider()
-            Button(role: .destructive, action: onDelete) { Label("Удалить", systemImage: "trash") }
+            Button(role: .destructive) { showDeleteConfirmation = true } label: {
+                Label("Удалить", systemImage: "trash")
+            }
         }
-        .swipeActions(edge: .trailing, allowsFullSwipe: true) {
-            Button(role: .destructive, action: onDelete) { Label("Удалить", systemImage: "trash") }
+        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+            Button(role: .destructive) { showDeleteConfirmation = true } label: {
+                Label("Удалить", systemImage: "trash")
+            }
+        }
+        .alert("Удалить подписку?", isPresented: $showDeleteConfirmation) {
+            Button("Удалить", role: .destructive, action: onDelete)
+            Button("Отмена", role: .cancel) {}
+        } message: {
+            Text("«\(subscription.name)» будет удалена без возможности восстановления.")
         }
     }
 }
