@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"fmt"
 	"time"
 
 	"github.com/OctopyApps/SubRadar-BackEnd/internal/models"
@@ -47,23 +48,39 @@ func (r *SubscriptionRepository) Create(s *models.Subscription) error {
 		  color, icon_name, start_date, next_billing_date, tag, url, image_data, created_at, updated_at)
 		 VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 		s.ID, s.UserID, s.Name, s.Category, s.Price, s.Currency, s.BillingPeriod,
-		s.Color, s.IconName, s.StartDate, s.NextBillingDate, s.Tag, s.URL, s.ImageData, now, now,
+		s.Color, s.IconName, s.StartDate.Time(), s.NextBillingDate.Time(),
+		s.Tag, s.URL, s.ImageData, now, now,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+	// Обновляем created_at/updated_at в объекте чтобы вернуть клиенту
+	s.CreatedAt = models.RFC3339Seconds(now)
+	s.UpdatedAt = models.RFC3339Seconds(now)
+	return nil
 }
 
 // Update обновляет существующую подписку (только свою — проверяем user_id).
 func (r *SubscriptionRepository) Update(s *models.Subscription) error {
-	_, err := r.db.Exec(
+	now := time.Now()
+	result, err := r.db.Exec(
 		`UPDATE subscriptions SET
 		 name=?, category=?, price=?, currency=?, billing_period=?,
 		 color=?, icon_name=?, start_date=?, next_billing_date=?, tag=?, url=?, image_data=?, updated_at=?
 		 WHERE id=? AND user_id=?`,
 		s.Name, s.Category, s.Price, s.Currency, s.BillingPeriod,
-		s.Color, s.IconName, s.StartDate, s.NextBillingDate, s.Tag, s.URL, s.ImageData, time.Now(),
+		s.Color, s.IconName, s.StartDate.Time(), s.NextBillingDate.Time(),
+		s.Tag, s.URL, s.ImageData, now,
 		s.ID, s.UserID,
 	)
-	return err
+	if err != nil {
+		return err
+	}
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		return fmt.Errorf("subscription not found")
+	}
+	s.UpdatedAt = models.RFC3339Seconds(now)
+	return nil
 }
 
 // Delete удаляет подписку пользователя.
@@ -74,10 +91,19 @@ func (r *SubscriptionRepository) Delete(id string, userID int64) error {
 
 func scanSubscription(rows *sql.Rows) (models.Subscription, error) {
 	var s models.Subscription
+	// Сканируем time.Time во временные переменные — database/sql не знает про RFC3339Seconds
+	var startDate, nextBillingDate, createdAt, updatedAt time.Time
 	err := rows.Scan(
 		&s.ID, &s.UserID, &s.Name, &s.Category, &s.Price, &s.Currency, &s.BillingPeriod,
-		&s.Color, &s.IconName, &s.StartDate, &s.NextBillingDate, &s.Tag, &s.URL, &s.ImageData,
-		&s.CreatedAt, &s.UpdatedAt,
+		&s.Color, &s.IconName, &startDate, &nextBillingDate, &s.Tag, &s.URL, &s.ImageData,
+		&createdAt, &updatedAt,
 	)
-	return s, err
+	if err != nil {
+		return s, err
+	}
+	s.StartDate = models.RFC3339Seconds(startDate)
+	s.NextBillingDate = models.RFC3339Seconds(nextBillingDate)
+	s.CreatedAt = models.RFC3339Seconds(createdAt)
+	s.UpdatedAt = models.RFC3339Seconds(updatedAt)
+	return s, nil
 }

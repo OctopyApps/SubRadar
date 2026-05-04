@@ -18,5 +18,5 @@ storage:
 
 auth:
   jwt_secret: "change-me-in-production"
-  self_hosted: false
-  server_secret: ""
+  self_hosted: true
+  server_secret: "mystrongfirstsecret124532"
