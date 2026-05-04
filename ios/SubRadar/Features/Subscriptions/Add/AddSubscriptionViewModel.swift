@@ -28,9 +28,9 @@ final class AddSubscriptionViewModel: SubscriptionFormViewModel {
             imageData:       imageData
         )
 
-        do {
-            try await storage.save(subscription)
-            onSuccess(subscription)
+        do {    
+            let saved = try await storage.save(subscription)
+            onSuccess(saved)
         } catch let e as StorageError { self.error = e
         } catch { self.error = .saveFailed(underlying: error) }
 

@@ -95,6 +95,10 @@ final class SubscriptionsViewModel: ObservableObject {
         }
         isLoading = false
     }
+    
+    func refresh() async {
+        await load()
+    }
 
     func subscriptionAdded(_ subscription: Subscription) {
         subscriptions.insert(subscription, at: 0)
@@ -141,8 +145,8 @@ final class SubscriptionsViewModel: ObservableObject {
             imageData:       subscription.imageData
         )
         do {
-            try await storage.save(copy)
-            subscriptions.insert(copy, at: 0)
+            let saved = try await storage.save(copy)
+            subscriptions.insert(saved, at: 0)
         } catch let e as StorageError { error = e
         } catch {}
     }

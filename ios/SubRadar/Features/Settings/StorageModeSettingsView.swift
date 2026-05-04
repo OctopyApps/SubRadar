@@ -20,6 +20,10 @@ struct StorageModeSettingsView: View {
     @State private var subscriptionsToMigrate: [Subscription] = []
     @State private var isMigrating = false
 
+    // selfHosted: сохраняем до решения о миграции
+    @State private var pendingToken: String = ""
+    @State private var pendingServerConfig: ServerConfiguration = .shared()
+
     private var currentMode: StorageMode { appState.storageMode }
 
     var body: some View {
@@ -73,8 +77,18 @@ struct StorageModeSettingsView: View {
         // Настройка сервера
         .sheet(isPresented: $showServerSetup, onDismiss: { pendingMode = nil }) {
             if let mode = pendingMode {
-                ServerSetupView(mode: mode, onBack: { showServerSetup = false })
-                    .environmentObject(appState)
+                ServerSetupView(
+                    mode: mode,
+                    onBack: { showServerSetup = false },
+                    onConnected: { token, serverConfig in
+                        // Сервер настроен успешно — сохраняем данные и проверяем миграцию
+                        pendingToken = token
+                        pendingServerConfig = serverConfig
+                        showServerSetup = false
+                        Task { await checkMigrationNeeded(for: mode) }
+                    }
+                )
+                .environmentObject(appState)
             }
         }
     }
@@ -210,6 +224,7 @@ struct StorageModeSettingsView: View {
         case .local:
             showConfirmation = true
         case .shared, .selfHosted:
+            // Сначала настраиваем сервер, потом спрашиваем про миграцию
             showServerSetup = true
         }
     }
@@ -217,7 +232,7 @@ struct StorageModeSettingsView: View {
     /// Загружаем подписки из текущего хранилища и решаем — показывать алерт о миграции или нет
     private func checkMigrationNeeded(for mode: StorageMode) async {
         let config = UserDefaultsService.shared.configuration ?? .local()
-        let currentStorage = StorageServiceFactory.make(for: config)
+        let currentStorage = StorageServiceFactory.make(for: config, appState: appState)
         let subs = (try? await currentStorage.fetchSubscriptions()) ?? []
 
         if subs.isEmpty {
@@ -228,24 +243,32 @@ struct StorageModeSettingsView: View {
         }
     }
 
-    /// Применяем смену режима. migrate = true → сохраняем подписки в новое хранилище
+    /// Применяем смену режима. migrate = true → копируем подписки в новое хранилище
     @MainActor
     private func applySwitch(to mode: StorageMode, migrate: Bool) async {
         isMigrating = migrate && !subscriptionsToMigrate.isEmpty
 
-        // Сохраняем ссылку на старое хранилище до смены конфига
+        // Запоминаем старый конфиг до смены
         let oldConfig = UserDefaultsService.shared.configuration ?? .local()
         let oldStorage = StorageServiceFactory.make(for: oldConfig, appState: appState)
 
-        // Записываем новый конфиг
+        // Применяем новый конфиг
         switch mode {
         case .local:
             UserDefaultsService.shared.configuration = .local()
+            appState.selectMode(.local)
+
         case .shared:
             UserDefaultsService.shared.configuration = .shared()
+            appState.selectMode(.shared)
+
         case .selfHosted:
-            // selfHosted сюда не попадает — он идёт через ServerSetupView
-            break
+            // Токен и serverConfig уже получены в onConnected от ServerSetupView
+            appState.completeAuth(
+                mode: .selfHosted,
+                token: pendingToken,
+                serverConfiguration: pendingServerConfig
+            )
         }
 
         // Переносим подписки если нужно
@@ -253,9 +276,9 @@ struct StorageModeSettingsView: View {
             let newConfig = UserDefaultsService.shared.configuration ?? .local()
             let newStorage = StorageServiceFactory.make(for: newConfig, appState: appState)
             for sub in subscriptionsToMigrate {
-                try? await newStorage.save(sub)
+                _ = try? await newStorage.save(sub)
             }
-        } else {
+        } else if !migrate {
             // Начать чисто — очищаем старое хранилище
             try? await oldStorage.clearAll()
         }
@@ -272,6 +295,9 @@ private struct StorageModeRow: View {
     let mode: StorageMode
     let isCurrent: Bool
     let action: () -> Void
+
+    private var isComingSoon: Bool { mode == .shared }
+    @State private var showComingSoon = false
 
     private var accentColor: Color {
         switch mode {
@@ -290,7 +316,13 @@ private struct StorageModeRow: View {
     }
 
     var body: some View {
-        Button(action: action) {
+        Button {
+            if isComingSoon {
+                showComingSoon = true
+            } else {
+                action()
+            }
+        } label: {
             HStack(spacing: 14) {
                 ZStack {
                     RoundedRectangle(cornerRadius: 10)
@@ -320,6 +352,15 @@ private struct StorageModeRow: View {
                         .padding(.vertical, 4)
                         .background(accentColor.opacity(0.12))
                         .clipShape(Capsule())
+                } else if isComingSoon {
+                    Text("Скоро")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.srTextTertiary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.srSurface.opacity(0.8))
+                        .clipShape(Capsule())
+                        .overlay(Capsule().stroke(Color.srBorder, lineWidth: 1))
                 } else {
                     Image(systemName: "chevron.right")
                         .font(.system(size: 13, weight: .medium))
@@ -332,6 +373,12 @@ private struct StorageModeRow: View {
         }
         .buttonStyle(.plain)
         .disabled(isCurrent)
+        .opacity(isComingSoon ? 0.5 : 1.0)
+        .alert("Скоро", isPresented: $showComingSoon) {
+            Button("OK", role: .cancel) {}
+        } message: {
+            Text("Режим ещё в разработке, но скоро будет!")
+        }
     }
 }
 

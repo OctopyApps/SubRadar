@@ -4,10 +4,6 @@
 //
 //  Created by Алексей Розанов on 13.04.2026.
 //
-//
-//  Subscription.swift
-//  SubRadar
-//
 
 import Foundation
 
@@ -60,9 +56,6 @@ struct Subscription: Identifiable, Codable {
 
     // MARK: - Codable
 
-    // Маппим snake_case полей API на camelCase свойств модели.
-    // AppCategory и AppCurrency кодируются/декодируются через отдельное несоответствие —
-    // см. их расширения Codable ниже.
     enum CodingKeys: String, CodingKey {
         case id
         case name
@@ -77,6 +70,37 @@ struct Subscription: Identifiable, Codable {
         case tag
         case url
         case imageData       = "image_data"
+    }
+
+    // Бэкенд хранит category и currency как строки (имя и код).
+    // Декодируем строку и резолвим в объект через дефолты.
+    // Если совпадения нет — создаём заглушку чтобы не терять данные.
+    init(from decoder: Decoder) throws {
+        let c = try decoder.container(keyedBy: CodingKeys.self)
+
+        id             = try c.decode(UUID.self,         forKey: .id)
+        name           = try c.decode(String.self,       forKey: .name)
+        price          = try c.decode(Double.self,       forKey: .price)
+        color          = try c.decode(String.self,       forKey: .color)
+        iconName       = try c.decode(String.self,       forKey: .iconName)
+        startDate      = try c.decode(Date.self,         forKey: .startDate)
+        nextBillingDate = try c.decode(Date.self,        forKey: .nextBillingDate)
+        tag            = try c.decodeIfPresent(String.self, forKey: .tag)
+        url            = try c.decodeIfPresent(String.self, forKey: .url)
+        imageData      = try c.decodeIfPresent(Data.self,   forKey: .imageData)
+
+        let periodRaw  = try c.decode(String.self, forKey: .billingPeriod)
+        billingPeriod  = BillingPeriod(rawValue: periodRaw) ?? .monthly
+
+        // category — строка с именем категории на бэкенде
+        let categoryName = try c.decode(String.self, forKey: .category)
+        category = AppCategory.defaults.first { $0.name == categoryName }
+            ?? AppCategory(name: categoryName, icon: "ellipsis.circle")
+
+        // currency — строка с кодом валюты на бэкенде
+        let currencyCode = try c.decode(String.self, forKey: .currency)
+        currency = AppCurrency.allPredefined.first { $0.code == currencyCode }
+            ?? AppCurrency(code: currencyCode, symbol: currencyCode, displayName: currencyCode)
     }
 
     // MARK: - Computed

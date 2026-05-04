@@ -17,6 +17,13 @@ final class ServerSetupViewModel: ObservableObject {
 
     let mode: StorageMode
 
+    // Заполняется после успешного подключения — передаётся наружу для алерта миграции
+    private(set) var pendingToken: String = ""
+    private(set) var pendingServerConfig: ServerConfiguration = .shared()
+
+    /// Вызывается после успешного подключения. Параметр — подписки из старого хранилища (может быть пустым).
+    var onConnected: ((_ token: String, _ serverConfig: ServerConfiguration) -> Void)?
+
     init(mode: StorageMode) {
         self.mode = mode
     }
@@ -29,15 +36,18 @@ final class ServerSetupViewModel: ObservableObject {
         isLoading = true
 
         let portNumber = Int(port)!
-        let serverConfig = ServerConfiguration.selfHosted(host: host.trimmingCharacters(in: .whitespaces),
-                                                          port: portNumber)
+        let serverConfig = ServerConfiguration.selfHosted(
+            host: host.trimmingCharacters(in: .whitespaces),
+            port: portNumber
+        )
         let service = AuthService(baseURL: serverConfig.baseURL, session: URLSessionFactory.selfHosted)
 
         Task {
             do {
                 let token = try await service.selfHosted(secret: secret)
                 isLoading = false
-                appState.completeAuth(mode: mode, token: token, serverConfiguration: serverConfig)
+                // Передаём управление наружу — там решат про миграцию
+                onConnected?(token, serverConfig)
             } catch {
                 isLoading = false
                 errorMessage = AuthError.from(error)
@@ -76,7 +86,6 @@ final class ServerSetupViewModel: ObservableObject {
 }
 
 // MARK: - ServerSetupError
-// Оставляем для совместимости если используется в других местах
 
 enum ServerSetupError: LocalizedError {
     case badURL
