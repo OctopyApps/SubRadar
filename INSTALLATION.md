@@ -23,7 +23,7 @@
 - предлагает настроить автозапуск через systemd
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/OctopyApps/SubRadar-BackEnd/main/install.sh | sudo bash
+curl -fsSL https://raw.githubusercontent.com/OctopyApps/SubRadar/main/install.sh | sudo bash
 ```
 
 После установки бэкенд будет доступен на порту `8080`. Конфиг находится в `/etc/subradar/config.yaml`.
