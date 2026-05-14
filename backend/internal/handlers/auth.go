@@ -145,10 +145,15 @@ func (h *AuthHandler) SelfHosted(w http.ResponseWriter, r *http.Request) {
 	const selfHostedEmail = "admin@self-hosted.local"
 	user, err := h.users.FindByEmail(selfHostedEmail)
 	if errors.Is(err, repository.ErrNotFound) {
-		// Первый вход — создаём пользователя
+		// Первый вход — создаём пользователя и форсируем роль admin,
+		// не полагаясь на CountAll (в БД могут быть другие пользователи)
 		id, err := h.users.Create(selfHostedEmail, "", models.AuthProviderLocal, "self-hosted")
 		if err != nil {
 			respondError(w, http.StatusInternalServerError, "ошибка создания пользователя")
+			return
+		}
+		if err := h.users.SetRole(id, models.UserRoleAdmin); err != nil {
+			respondError(w, http.StatusInternalServerError, "ошибка назначения роли")
 			return
 		}
 		token, err := auth.GenerateToken(id, h.config.JWTSecret)
