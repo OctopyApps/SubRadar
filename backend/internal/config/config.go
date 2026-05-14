@@ -1,9 +1,10 @@
 package config
 
 import (
-	"github.com/spf13/viper"
 	"log"
 	"strings"
+
+	"github.com/spf13/viper"
 )
 
 type Config struct {
@@ -16,6 +17,10 @@ type Config struct {
 	JWTSecret      string
 	SelfHosted     bool
 	ServerSecret   string
+
+	// CORS
+	CORSAllowAll bool     // true — разрешаем любой origin (только для dev)
+	CORSOrigins  []string // список разрешённых origins для продакшена
 
 	// OAuth (читаются только из env — содержат секреты)
 	GoogleClientID  string
@@ -39,12 +44,13 @@ func Load() *Config {
 	viper.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	viper.AutomaticEnv()
 
-	// Дефолты (если нет ни yaml, ни env)
+	// Дефолты
 	viper.SetDefault("server.port", 8080)
 	viper.SetDefault("storage.driver", "sqlite")
 	viper.SetDefault("storage.sqlite.path", "./subradar.db")
 	viper.SetDefault("auth.jwt_secret", "change-me-in-production")
 	viper.SetDefault("auth.self_hosted", false)
+	viper.SetDefault("cors.allow_all", false) // в продакшене false, в dev можно true
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
@@ -66,6 +72,9 @@ func Load() *Config {
 		JWTSecret:    viper.GetString("auth.jwt_secret"),
 		SelfHosted:   viper.GetBool("auth.self_hosted"),
 		ServerSecret: viper.GetString("auth.server_secret"),
+
+		CORSAllowAll: viper.GetBool("cors.allow_all"),
+		CORSOrigins:  viper.GetStringSlice("cors.origins"),
 
 		GoogleClientID:  viper.GetString("GOOGLE_CLIENT_ID"),
 		AppleTeamID:     viper.GetString("APPLE_TEAM_ID"),
