@@ -1,0 +1,152 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Светлая тема (по умолчанию) ─────────────────────────────────────── */
+:root {
+  --sr-background:    #F2F2F7;
+  --sr-surface:       #FFFFFF;
+  --sr-surface2:      #F2F2F7;
+  --sr-border:        rgba(60, 60, 67, 0.12);
+  --sr-accent:        #7B5EA7;
+  --sr-accent-light:  #EDE8F5;
+  --sr-text-primary:  #1C1C1E;
+  --sr-text-secondary:#6C6C70;
+  --sr-text-tertiary: #AEAEB2;
+  --sr-danger:        #FF3B30;
+  --sr-warning:       #FF9500;
+  --sr-teal:          #30B0C7;
+  --sr-mode-local:    #34C759;
+  --sr-mode-shared:   #007AFF;
+}
+
+/* ── Тёмная тема ──────────────────────────────────────────────────────── */
+.dark {
+  --sr-background:    #1C1C1E;
+  --sr-surface:       #2C2C2E;
+  --sr-surface2:      #3A3A3C;
+  --sr-border:        rgba(255, 255, 255, 0.10);
+  --sr-accent:        #9B7FD4;
+  --sr-accent-light:  rgba(155, 127, 212, 0.15);
+  --sr-text-primary:  #F2F2F7;
+  --sr-text-secondary:#AEAEB2;
+  --sr-text-tertiary: #6C6C70;
+  --sr-danger:        #FF453A;
+  --sr-warning:       #FF9F0A;
+  --sr-teal:          #5AC8FA;
+  --sr-mode-local:    #30D158;
+  --sr-mode-shared:   #0A84FF;
+}
+
+/* ── Базовые стили ────────────────────────────────────────────────────── */
+* {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--sr-background);
+  color: var(--sr-text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  margin: 0;
+}
+
+/* ── Компоненты ───────────────────────────────────────────────────────── */
+@layer components {
+  .card {
+    background-color: var(--sr-surface);
+    border-radius: 16px;
+    border: 1px solid var(--sr-border);
+    box-shadow: 0 1px 3px 0 rgba(0,0,0,0.08), 0 1px 2px -1px rgba(0,0,0,0.04);
+  }
+
+  .btn-primary {
+    @apply px-4 py-2 rounded-xl text-sm font-medium
+    transition-all duration-150 active:scale-95
+    disabled:opacity-40 disabled:cursor-not-allowed;
+    background-color: var(--sr-accent);
+    color: white;
+  }
+  .btn-primary:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+
+  .btn-secondary {
+    @apply px-4 py-2 rounded-xl text-sm font-medium
+    border transition-all duration-150 active:scale-95;
+    background-color: var(--sr-surface2);
+    color: var(--sr-text-primary);
+    border-color: var(--sr-border);
+  }
+  .btn-secondary:hover {
+    border-color: var(--sr-accent);
+    color: var(--sr-accent);
+  }
+
+  .btn-danger {
+    @apply px-4 py-2 rounded-xl text-sm font-medium
+    transition-all duration-150 active:scale-95
+    disabled:opacity-40 disabled:cursor-not-allowed;
+    background-color: var(--sr-danger);
+    color: white;
+  }
+  .btn-danger:hover:not(:disabled) {
+    opacity: 0.9;
+  }
+
+  .input {
+    @apply w-full px-3 py-2 rounded-xl text-sm
+    transition-all duration-150
+    focus:outline-none;
+    background-color: var(--sr-surface2);
+    border: 1px solid var(--sr-border);
+    color: var(--sr-text-primary);
+  }
+  .input::placeholder {
+    color: var(--sr-text-tertiary);
+  }
+  .input:focus {
+    border-color: var(--sr-accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--sr-accent) 15%, transparent);
+  }
+
+  .badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium;
+  }
+
+  .badge-admin {
+    background-color: var(--sr-accent-light);
+    color: var(--sr-accent);
+  }
+
+  .badge-user {
+    background-color: var(--sr-surface2);
+    color: var(--sr-text-secondary);
+  }
+
+  .badge-blocked {
+    background-color: rgba(255, 59, 48, 0.1);
+    color: var(--sr-danger);
+  }
+}
+
+/* ── Анимации ─────────────────────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.animate-fade-in  { animation: fadeIn  0.2s ease-out; }
+.animate-slide-up { animation: slideUp 0.3s ease-out; }
+
+/* ── Скролл ───────────────────────────────────────────────────────────── */
+.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--sr-border) transparent;
+}
