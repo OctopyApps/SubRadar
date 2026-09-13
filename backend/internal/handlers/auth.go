@@ -57,7 +57,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 
 	userID, err := h.users.Create(req.Email, hash, models.AuthProviderLocal, "")
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE") {
+		if errors.Is(err, repository.ErrAlreadyExists) {
 			respondError(w, http.StatusConflict, "пользователь с таким email уже существует")
 			return
 		}

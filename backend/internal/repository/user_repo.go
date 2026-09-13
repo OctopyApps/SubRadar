@@ -36,6 +36,9 @@ func (r *UserRepository) Create(email, passwordHash string, provider models.Auth
 		email, passwordHash, provider, providerID, role, time.Now(),
 	)
 	if err != nil {
+		if isUniqueConstraintErr(err) {
+			return 0, ErrAlreadyExists
+		}
 		return 0, err
 	}
 	return res.LastInsertId()

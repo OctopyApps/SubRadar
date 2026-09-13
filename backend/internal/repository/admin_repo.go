@@ -199,7 +199,13 @@ func (r *AdminRepository) CreateSystemCategory(name, icon string) (models.Catego
 		 VALUES (?, NULL, ?, ?, 1, ?)`,
 		c.ID, c.Name, c.Icon, now,
 	)
-	return c, err
+	if err != nil {
+		if isUniqueConstraintErr(err) {
+			return models.Category{}, ErrAlreadyExists
+		}
+		return models.Category{}, err
+	}
+	return c, nil
 }
 
 // DeleteSystemCategory удаляет системную категорию.
