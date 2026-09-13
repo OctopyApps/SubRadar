@@ -62,7 +62,7 @@ func Load() *Config {
 		log.Printf("Конфиг загружен: %s", viper.ConfigFileUsed())
 	}
 
-	return &Config{
+	cfg := &Config{
 		Port:           viper.GetInt("server.port"),
 		DBDriver:       viper.GetString("storage.driver"),
 		DBPath:         viper.GetString("storage.sqlite.path"),
@@ -81,5 +81,32 @@ func Load() *Config {
 		AppleClientID:   viper.GetString("APPLE_CLIENT_ID"),
 		AppleKeyID:      viper.GetString("APPLE_KEY_ID"),
 		ApplePrivateKey: viper.GetString("APPLE_PRIVATE_KEY"),
+	}
+
+	cfg.validateSecrets()
+
+	return cfg
+}
+
+// minSecretLength — минимальная допустимая длина jwt_secret/server_secret.
+// См. README.md, раздел "Конфигурация".
+const minSecretLength = 32
+
+// defaultJWTSecret — значение-заглушка из SetDefault выше; запуск с ним
+// в проде означает, что admin забыл положить свой config.yaml.
+const defaultJWTSecret = "change-me-in-production"
+
+// validateSecrets останавливает запуск сервера (log.Fatal), если
+// jwt_secret оставлен дефолтным/слишком коротким, либо если self_hosted
+// включён, а server_secret отсутствует/слишком короткий. Тихий запуск
+// с такими значениями означает, что JWT или self-hosted вход можно
+// подделать/подобрать.
+func (c *Config) validateSecrets() {
+	if c.JWTSecret == defaultJWTSecret || len(c.JWTSecret) < minSecretLength {
+		log.Fatalf("auth.jwt_secret не задан или короче %d символов — задайте его в config.yaml (см. config.example.yaml) или через SUBRADAR_AUTH_JWT_SECRET", minSecretLength)
+	}
+
+	if c.SelfHosted && len(c.ServerSecret) < minSecretLength {
+		log.Fatalf("auth.self_hosted=true, но auth.server_secret не задан или короче %d символов — задайте его в config.yaml (см. config.example.yaml) или через SUBRADAR_AUTH_SERVER_SECRET", minSecretLength)
 	}
 }
