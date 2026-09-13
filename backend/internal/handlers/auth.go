@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"crypto/subtle"
 	"encoding/json"
 	"errors"
 	"log"
@@ -136,7 +137,7 @@ func (h *AuthHandler) SelfHosted(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if req.Secret != h.config.ServerSecret {
+	if subtle.ConstantTimeCompare([]byte(req.Secret), []byte(h.config.ServerSecret)) != 1 {
 		respondError(w, http.StatusUnauthorized, "неверный секретный ключ")
 		return
 	}
