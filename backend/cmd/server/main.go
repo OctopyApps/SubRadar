@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"time"
 
 	"github.com/OctopyApps/SubRadar-BackEnd/internal/config"
 	"github.com/OctopyApps/SubRadar-BackEnd/internal/db"
@@ -49,7 +50,16 @@ func main() {
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	log.Printf("SubRadar backend запущен на %s", addr)
 
-	if err := http.ListenAndServe(addr, router); err != nil {
+	srv := &http.Server{
+		Addr:              addr,
+		Handler:           router,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
+
+	if err := srv.ListenAndServe(); err != nil {
 		log.Fatalf("Ошибка сервера: %v", err)
 	}
 }
