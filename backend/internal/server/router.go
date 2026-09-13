@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/OctopyApps/SubRadar-BackEnd/internal/auth"
 	"github.com/OctopyApps/SubRadar-BackEnd/internal/config"
@@ -11,6 +12,7 @@ import (
 	"github.com/OctopyApps/SubRadar-BackEnd/internal/repository"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/httprate"
 )
 
 func NewRouter(db *sql.DB, cfg *config.Config) http.Handler {
@@ -51,11 +53,17 @@ func NewRouter(db *sql.DB, cfg *config.Config) http.Handler {
 	})
 
 	// --- Публичные маршруты (без токена) ---
-	r.Post("/auth/register", authHandler.Register)
-	r.Post("/auth/login", authHandler.Login)
-	r.Post("/auth/self-hosted", authHandler.SelfHosted)
-	r.Post("/auth/google", authHandler.Google)
-	r.Post("/auth/apple", authHandler.Apple)
+	// Rate limit: 5 попыток в минуту с одного IP — усложняет перебор
+	// пароля/секрета через /auth/login и /auth/self-hosted.
+	r.Group(func(r chi.Router) {
+		r.Use(httprate.LimitByIP(5, time.Minute))
+
+		r.Post("/auth/register", authHandler.Register)
+		r.Post("/auth/login", authHandler.Login)
+		r.Post("/auth/self-hosted", authHandler.SelfHosted)
+		r.Post("/auth/google", authHandler.Google)
+		r.Post("/auth/apple", authHandler.Apple)
+	})
 
 	// --- Защищённые маршруты (нужен JWT) ---
 	r.Group(func(r chi.Router) {
