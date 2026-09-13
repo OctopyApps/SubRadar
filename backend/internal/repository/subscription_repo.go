@@ -2,7 +2,6 @@ package repository
 
 import (
 	"database/sql"
-	"fmt"
 	"time"
 
 	"github.com/OctopyApps/SubRadar-BackEnd/internal/models"
@@ -77,7 +76,7 @@ func (r *SubscriptionRepository) Update(s *models.Subscription) error {
 		return err
 	}
 	if rows, _ := result.RowsAffected(); rows == 0 {
-		return fmt.Errorf("subscription not found")
+		return ErrNotFound
 	}
 	s.UpdatedAt = models.RFC3339Seconds(now)
 	return nil

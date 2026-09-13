@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"net/http"
 
@@ -76,6 +77,10 @@ func (h *SubscriptionHandler) Update(w http.ResponseWriter, r *http.Request) {
 	s.UserID = userID
 
 	if err := h.subs.Update(&s); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			respondError(w, http.StatusNotFound, "подписка не найдена")
+			return
+		}
 		respondError(w, http.StatusInternalServerError, "ошибка обновления подписки")
 		return
 	}
