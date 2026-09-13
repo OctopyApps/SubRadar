@@ -43,6 +43,7 @@ Thumbs.db
 # BackEnd
 *.db*
 .idea/
+backend/config.yaml
 
 # WEB
 .vite/

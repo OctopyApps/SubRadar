@@ -1,5 +1,9 @@
 # SubRadar — конфигурация бэкенда
 # Документация: https://github.com/OctopyApps/SubRadar-BackEnd
+#
+# Скопируйте этот файл в config.yaml и подставьте свои значения:
+#   cp config.example.yaml config.yaml
+# config.yaml не коммитится в git (см. .gitignore).
 
 server:
   port: 8080
@@ -17,6 +21,6 @@ storage:
     dsn: ""
 
 auth:
-  jwt_secret: "change-me-in-production"
+  jwt_secret: "CHANGE_ME"
   self_hosted: true
-  server_secret: "mystrongfirstsecret124532"
+  server_secret: "CHANGE_ME"
