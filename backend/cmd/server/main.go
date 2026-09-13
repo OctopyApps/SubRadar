@@ -1,10 +1,14 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"log"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/OctopyApps/SubRadar-BackEnd/internal/config"
@@ -42,7 +46,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("Не удалось подключиться к базе данных: %v", err)
 	}
-	defer database.Close()
 
 	// Роутер
 	router := server.NewRouter(database, cfg)
@@ -59,7 +62,30 @@ func main() {
 		IdleTimeout:       60 * time.Second,
 	}
 
-	if err := srv.ListenAndServe(); err != nil {
-		log.Fatalf("Ошибка сервера: %v", err)
+	// Запускаем сервер в отдельной горутине, чтобы не блокировать
+	// ожидание сигнала на graceful shutdown.
+	go func() {
+		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Fatalf("Ошибка сервера: %v", err)
+		}
+	}()
+
+	stop := make(chan os.Signal, 1)
+	signal.Notify(stop, syscall.SIGINT, syscall.SIGTERM)
+	<-stop
+
+	log.Println("Получен сигнал остановки, завершаем работу...")
+
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		log.Printf("Ошибка при остановке сервера: %v", err)
 	}
+
+	if err := database.Close(); err != nil {
+		log.Printf("Ошибка при закрытии базы данных: %v", err)
+	}
+
+	log.Println("Сервер остановлен")
 }
