@@ -37,6 +37,7 @@ func NewRouter(db *sql.DB, cfg *config.Config) http.Handler {
 	categoryRepo := repository.NewCategoryRepository(db)
 	currencyRepo := repository.NewCurrencyRepository(db)
 	adminRepo := repository.NewAdminRepository(db)
+	pushRepo := repository.NewPushSubscriptionRepository(db)
 
 	// --- Хендлеры ---
 	authHandler := handlers.NewAuthHandler(userRepo, cfg)
@@ -46,6 +47,7 @@ func NewRouter(db *sql.DB, cfg *config.Config) http.Handler {
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo)
 	currencyHandler := handlers.NewCurrencyHandler(currencyRepo)
 	adminHandler := handlers.NewAdminHandler(adminRepo, userRepo)
+	pushHandler := handlers.NewPushHandler(pushRepo, cfg)
 
 	// --- Health check (публичный) ---
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -110,7 +112,19 @@ func NewRouter(db *sql.DB, cfg *config.Config) http.Handler {
 			r.Post("/admin/categories", adminHandler.CreateSystemCategory)
 			r.Delete("/admin/categories/{id}", adminHandler.DeleteSystemCategory)
 		})
+
+		// Web Push — регистрируем только если заданы VAPID-ключи, иначе
+		// это ничего не значащая мёртвая фича (пуш физически не отправить).
+		if cfg.PushEnabled() {
+			r.Post("/push/subscribe", pushHandler.Subscribe)
+			r.Delete("/push/subscribe", pushHandler.Unsubscribe)
+		}
 	})
+
+	// Публичный — нужен до логина, чтобы вызвать pushManager.subscribe().
+	if cfg.PushEnabled() {
+		r.Get("/push/vapid-public-key", pushHandler.VAPIDPublicKey)
+	}
 
 	return r
 }
