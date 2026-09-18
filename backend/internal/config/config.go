@@ -22,6 +22,11 @@ type Config struct {
 	CORSAllowAll bool     // true — разрешаем любой origin (только для dev)
 	CORSOrigins  []string // список разрешённых origins для продакшена
 
+	// CookieSecure — ставить ли Secure на auth-cookie (см. auth.SetTokenCookie).
+	// true возможен только за HTTPS (браузер не отправит Secure-cookie по
+	// обычному http://) — дефолт false, чтобы не ломать self-hosted без TLS.
+	CookieSecure bool
+
 	// OAuth (читаются только из env — содержат секреты)
 	GoogleClientID  string
 	AppleTeamID     string
@@ -51,6 +56,7 @@ func Load() *Config {
 	viper.SetDefault("auth.jwt_secret", "change-me-in-production")
 	viper.SetDefault("auth.self_hosted", false)
 	viper.SetDefault("cors.allow_all", false) // в продакшене false, в dev можно true
+	viper.SetDefault("auth.cookie_secure", false)
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
@@ -89,6 +95,8 @@ func Load() *Config {
 
 		CORSAllowAll: corsAllowAll,
 		CORSOrigins:  viper.GetStringSlice("cors.origins"),
+
+		CookieSecure: viper.GetBool("auth.cookie_secure"),
 
 		GoogleClientID:  viper.GetString("GOOGLE_CLIENT_ID"),
 		AppleTeamID:     viper.GetString("APPLE_TEAM_ID"),

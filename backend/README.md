@@ -45,6 +45,20 @@ openssl rand -hex 32
 - В `shared`-режиме (`self_hosted: false`) дефолт остаётся `false` —
   если нужен веб-клиент, задайте `cors.origins` явно.
 
+**Токен: тело ответа vs httpOnly cookie.** `/auth/login`, `/auth/register`
+и `/auth/self-hosted` всегда возвращают `{"token": "..."}` в теле (это не
+меняется — так работает iOS-клиент, храня токен в Keychain), и
+дополнительно ставят JWT в httpOnly cookie `subradar_token`. Auth
+middleware принимает токен из `Authorization: Bearer` **или** из этой
+cookie — клиент может использовать любой вариант.
+
+- Cookie всегда `HttpOnly` — JS не может её прочитать, что и есть смысл
+  перехода с `localStorage` (защита от кражи токена через XSS).
+- `Secure` управляется `auth.cookie_secure` (дефолт `false`). Включайте
+  `true` **только за HTTPS** — браузер не отправит `Secure`-cookie по
+  обычному `http://`. Для self-hosted без TLS (например, доступ по
+  `http://192.168.1.x:8080`) оставляйте `false`.
+
 ## API
 
 ```

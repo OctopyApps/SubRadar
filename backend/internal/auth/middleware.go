@@ -21,13 +21,12 @@ const (
 func Middleware(secret string, users *repository.UserRepository) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			header := r.Header.Get("Authorization")
-			if !strings.HasPrefix(header, "Bearer ") {
+			tokenStr, ok := tokenFromRequest(r)
+			if !ok {
 				http.Error(w, `{"error":"unauthorized"}`, http.StatusUnauthorized)
 				return
 			}
 
-			tokenStr := strings.TrimPrefix(header, "Bearer ")
 			claims, err := ParseToken(tokenStr, secret)
 			if err != nil {
 				http.Error(w, `{"error":"invalid token"}`, http.StatusUnauthorized)
@@ -54,6 +53,20 @@ func Middleware(secret string, users *repository.UserRepository) func(http.Handl
 			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
+}
+
+// tokenFromRequest достаёт JWT из заголовка Authorization: Bearer (основной
+// путь — iOS-клиент и большинство веб-запросов), а если его нет — из
+// httpOnly cookie TokenCookieName (веб-клиент, который выбрал cookie вместо
+// ручного хранения токена).
+func tokenFromRequest(r *http.Request) (string, bool) {
+	if header := r.Header.Get("Authorization"); strings.HasPrefix(header, "Bearer ") {
+		return strings.TrimPrefix(header, "Bearer "), true
+	}
+	if cookie, err := r.Cookie(TokenCookieName); err == nil && cookie.Value != "" {
+		return cookie.Value, true
+	}
+	return "", false
 }
 
 // UserIDFromContext извлекает user_id из контекста запроса.

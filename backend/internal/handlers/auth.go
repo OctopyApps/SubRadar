@@ -73,6 +73,7 @@ func (h *AuthHandler) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	auth.SetTokenCookie(w, token, h.config.CookieSecure)
 	respondJSON(w, http.StatusCreated, map[string]string{"token": token})
 }
 
@@ -114,6 +115,7 @@ func (h *AuthHandler) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	auth.SetTokenCookie(w, token, h.config.CookieSecure)
 	respondJSON(w, http.StatusOK, map[string]string{"token": token})
 }
 
@@ -162,6 +164,7 @@ func (h *AuthHandler) SelfHosted(w http.ResponseWriter, r *http.Request) {
 			respondError(w, http.StatusInternalServerError, "ошибка генерации токена")
 			return
 		}
+		auth.SetTokenCookie(w, token, h.config.CookieSecure)
 		respondJSON(w, http.StatusOK, map[string]string{"token": token})
 		return
 	}
@@ -176,6 +179,7 @@ func (h *AuthHandler) SelfHosted(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	auth.SetTokenCookie(w, token, h.config.CookieSecure)
 	respondJSON(w, http.StatusOK, map[string]string{"token": token})
 }
 
