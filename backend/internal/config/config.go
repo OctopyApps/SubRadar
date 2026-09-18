@@ -27,6 +27,15 @@ type Config struct {
 	// обычному http://) — дефолт false, чтобы не ломать self-hosted без TLS.
 	CookieSecure bool
 
+	// Web Push (напоминания о скором списании для веб-клиента). Пустые
+	// VAPIDPublicKey/VAPIDPrivateKey означают, что push отключён — сервер
+	// не публикует /push/*, фоновая джоба не запускается. Сгенерировать:
+	// webpush.GenerateVAPIDKeys() (см. README.md).
+	VAPIDPublicKey  string
+	VAPIDPrivateKey string
+	VAPIDSubscriber string // контакт для push-сервиса: "mailto:you@example.com"
+	PushCheckHour   int    // час (0-23) по времени сервера, когда шлём напоминания раз в сутки
+
 	// OAuth (читаются только из env — содержат секреты)
 	GoogleClientID  string
 	AppleTeamID     string
@@ -57,6 +66,7 @@ func Load() *Config {
 	viper.SetDefault("auth.self_hosted", false)
 	viper.SetDefault("cors.allow_all", false) // в продакшене false, в dev можно true
 	viper.SetDefault("auth.cookie_secure", false)
+	viper.SetDefault("push.check_hour", 10)
 
 	if err := viper.ReadInConfig(); err != nil {
 		if _, ok := err.(viper.ConfigFileNotFoundError); ok {
@@ -98,6 +108,11 @@ func Load() *Config {
 
 		CookieSecure: viper.GetBool("auth.cookie_secure"),
 
+		VAPIDPublicKey:  viper.GetString("push.vapid_public_key"),
+		VAPIDPrivateKey: viper.GetString("push.vapid_private_key"),
+		VAPIDSubscriber: viper.GetString("push.vapid_subscriber"),
+		PushCheckHour:   viper.GetInt("push.check_hour"),
+
 		GoogleClientID:  viper.GetString("GOOGLE_CLIENT_ID"),
 		AppleTeamID:     viper.GetString("APPLE_TEAM_ID"),
 		AppleClientID:   viper.GetString("APPLE_CLIENT_ID"),
@@ -108,6 +123,12 @@ func Load() *Config {
 	cfg.validateSecrets()
 
 	return cfg
+}
+
+// PushEnabled сообщает, настроен ли Web Push (заданы VAPID-ключи).
+// Если false — /push/* не регистрируются и фоновая джоба не запускается.
+func (c *Config) PushEnabled() bool {
+	return c.VAPIDPublicKey != "" && c.VAPIDPrivateKey != ""
 }
 
 // minSecretLength — минимальная допустимая длина jwt_secret/server_secret.
