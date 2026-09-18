@@ -62,6 +62,20 @@ func Load() *Config {
 		log.Printf("Конфиг загружен: %s", viper.ConfigFileUsed())
 	}
 
+	selfHosted := viper.GetBool("auth.self_hosted")
+
+	// Self-hosted: разрешаем любой origin по умолчанию, если админ явно не
+	// задал cors.allow_all в config.yaml/env. CORS не влияет на мобильные
+	// клиенты (у них нет заголовка Origin) — только на веб-клиент, а риск
+	// self-hosted-сервера, доступного публично из чужого браузера, низкий:
+	// это единственный пользователь на своём сервере. В shared-режиме
+	// дефолт остаётся false — там сервер публичный и с чужими пользователями.
+	corsAllowAll := viper.GetBool("cors.allow_all")
+	if selfHosted && !viper.IsSet("cors.allow_all") {
+		corsAllowAll = true
+		log.Println("self_hosted=true, cors.allow_all не задан — по умолчанию разрешаем любой origin (см. README.md)")
+	}
+
 	cfg := &Config{
 		Port:           viper.GetInt("server.port"),
 		DBDriver:       viper.GetString("storage.driver"),
@@ -70,10 +84,10 @@ func Load() *Config {
 		MigrationsPath: viper.GetString("storage.migrations_path"),
 
 		JWTSecret:    viper.GetString("auth.jwt_secret"),
-		SelfHosted:   viper.GetBool("auth.self_hosted"),
+		SelfHosted:   selfHosted,
 		ServerSecret: viper.GetString("auth.server_secret"),
 
-		CORSAllowAll: viper.GetBool("cors.allow_all"),
+		CORSAllowAll: corsAllowAll,
 		CORSOrigins:  viper.GetStringSlice("cors.origins"),
 
 		GoogleClientID:  viper.GetString("GOOGLE_CLIENT_ID"),
