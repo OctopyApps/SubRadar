@@ -34,3 +34,12 @@ cors:
   allow_all: false
   # Явный список разрешённых origin — актуально для shared-режима.
   # origins: ["https://app.example.com"]
+
+push:
+  # Web Push (напоминания о списании для веб-клиента). Опционально: если
+  # публичный/приватный ключ не заданы — /push/* и фоновая джоба отключены.
+  # Сгенерировать: webpush.GenerateVAPIDKeys() из github.com/SherClockHolmes/webpush-go.
+  # vapid_public_key: "CHANGE_ME"
+  # vapid_private_key: "CHANGE_ME"
+  # vapid_subscriber: "mailto:you@example.com"
+  check_hour: 10

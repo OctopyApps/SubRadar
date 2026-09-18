@@ -13,6 +13,8 @@ import (
 
 	"github.com/OctopyApps/SubRadar-BackEnd/internal/config"
 	"github.com/OctopyApps/SubRadar-BackEnd/internal/db"
+	"github.com/OctopyApps/SubRadar-BackEnd/internal/pushjob"
+	"github.com/OctopyApps/SubRadar-BackEnd/internal/repository"
 	"github.com/OctopyApps/SubRadar-BackEnd/internal/server"
 	"github.com/spf13/viper"
 )
@@ -49,6 +51,14 @@ func main() {
 
 	// Роутер
 	router := server.NewRouter(database, cfg)
+
+	// Фоновая джоба Web Push — раз в сутки, только если заданы VAPID-ключи.
+	pushCtx, cancelPush := context.WithCancel(context.Background())
+	defer cancelPush()
+	if cfg.PushEnabled() {
+		pushRepo := repository.NewPushSubscriptionRepository(database)
+		go pushjob.New(cfg, pushRepo).Start(pushCtx)
+	}
 
 	addr := fmt.Sprintf(":%d", cfg.Port)
 	log.Printf("SubRadar backend запущен на %s", addr)

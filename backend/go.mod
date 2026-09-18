@@ -3,6 +3,7 @@ module github.com/OctopyApps/SubRadar-BackEnd
 go 1.26.2
 
 require (
+	github.com/SherClockHolmes/webpush-go v1.4.0
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/go-chi/httprate v0.16.0
 	github.com/golang-jwt/jwt/v5 v5.3.1

@@ -59,6 +59,27 @@ cookie — клиент может использовать любой вари�
   обычному `http://`. Для self-hosted без TLS (например, доступ по
   `http://192.168.1.x:8080`) оставляйте `false`.
 
+**Web Push.** Напоминания о скором списании для веб-клиента (PWA) — у
+браузера нет аналога локальных уведомлений iOS, поэтому сервер сам шлёт
+push через `pushManager.subscribe()`. Полностью опционален: если
+`push.vapid_public_key`/`push.vapid_private_key` не заданы — `/push/*`
+не регистрируются и фоновая джоба не запускается.
+
+- Сгенерировать ключи один раз:
+  ```go
+  privateKey, publicKey, _ := webpush.GenerateVAPIDKeys() // github.com/SherClockHolmes/webpush-go
+  ```
+- `push.vapid_subscriber` — контакт для push-сервиса, `"mailto:you@example.com"`.
+- `push.check_hour` (дефолт `10`) — час (0-23) по времени сервера, когда раз
+  в сутки проверяются все подписки на приближающееся списание.
+- `users.push_lead_times` (за сколько дней до списания напомнить, дефолт
+  `[1]`) меняется через `PATCH /auth/me`; конкретное устройство может
+  задать свой override при подписке (`POST /push/subscribe`).
+- Дедупликация: одно и то же напоминание (устройство × подписка × день ×
+  дата списания) не отправится дважды, даже если джоба перезапустится.
+- Подписка, которую push-сервис считает мёртвой (404/410), удаляется
+  автоматически при следующей проверке.
+
 ## API
 
 ```
@@ -76,5 +97,9 @@ DELETE /subscriptions/:id      # Удалить
 GET    /tags                   # Список тегов
 POST   /tags                   # Создать
 DELETE /tags/:id               # Удалить
+
+GET    /push/vapid-public-key  # Публичный, нужен для pushManager.subscribe()
+POST   /push/subscribe         # Подписать текущее устройство на Web Push
+DELETE /push/subscribe         # Отписать
 ```
 
