@@ -84,8 +84,14 @@ func (r *SubscriptionRepository) Update(s *models.Subscription) error {
 
 // Delete удаляет подписку пользователя.
 func (r *SubscriptionRepository) Delete(id string, userID int64) error {
-	_, err := r.db.Exec(`DELETE FROM subscriptions WHERE id=? AND user_id=?`, id, userID)
-	return err
+	result, err := r.db.Exec(`DELETE FROM subscriptions WHERE id=? AND user_id=?`, id, userID)
+	if err != nil {
+		return err
+	}
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
 
 func scanSubscription(rows *sql.Rows) (models.Subscription, error) {

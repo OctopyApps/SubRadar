@@ -94,6 +94,10 @@ func (h *SubscriptionHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if err := h.subs.Delete(id, userID); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			respondError(w, http.StatusNotFound, "подписка не найдена")
+			return
+		}
 		respondError(w, http.StatusInternalServerError, "ошибка удаления подписки")
 		return
 	}
