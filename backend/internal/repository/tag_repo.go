@@ -71,6 +71,12 @@ func (r *TagRepository) FindOrCreate(userID int64, name string) (models.Tag, err
 
 // Delete удаляет тег пользователя.
 func (r *TagRepository) Delete(id string, userID int64) error {
-	_, err := r.db.Exec(`DELETE FROM tags WHERE id=? AND user_id=?`, id, userID)
-	return err
+	result, err := r.db.Exec(`DELETE FROM tags WHERE id=? AND user_id=?`, id, userID)
+	if err != nil {
+		return err
+	}
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		return ErrNotFound
+	}
+	return nil
 }

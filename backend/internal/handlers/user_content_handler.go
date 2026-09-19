@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/OctopyApps/SubRadar-BackEnd/internal/auth"
@@ -67,6 +68,10 @@ func (h *CategoryHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if err := h.cats.Delete(id, userID); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			respondError(w, http.StatusNotFound, "категория не найдена")
+			return
+		}
 		respondError(w, http.StatusInternalServerError, "ошибка удаления категории")
 		return
 	}
@@ -131,6 +136,10 @@ func (h *CurrencyHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if err := h.currencies.Delete(id, userID); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			respondError(w, http.StatusNotFound, "валюта не найдена")
+			return
+		}
 		respondError(w, http.StatusInternalServerError, "ошибка удаления валюты")
 		return
 	}
