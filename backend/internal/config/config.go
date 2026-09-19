@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"strings"
 
@@ -86,9 +87,8 @@ func Load() *Config {
 	// self-hosted-сервера, доступного публично из чужого браузера, низкий:
 	// это единственный пользователь на своём сервере. В shared-режиме
 	// дефолт остаётся false — там сервер публичный и с чужими пользователями.
-	corsAllowAll := viper.GetBool("cors.allow_all")
-	if selfHosted && !viper.IsSet("cors.allow_all") {
-		corsAllowAll = true
+	corsAllowAll := resolveCORSAllowAll(selfHosted, viper.IsSet("cors.allow_all"), viper.GetBool("cors.allow_all"))
+	if corsAllowAll && selfHosted && !viper.IsSet("cors.allow_all") {
 		log.Println("self_hosted=true, cors.allow_all не задан — по умолчанию разрешаем любой origin (см. README.md)")
 	}
 
@@ -125,6 +125,17 @@ func Load() *Config {
 	return cfg
 }
 
+// resolveCORSAllowAll — чистая версия логики "self-hosted по умолчанию
+// разрешает любой origin, если явно не задано". explicitlySet — было ли
+// cors.allow_all в config.yaml/env (viper.IsSet), value — его значение
+// в этом случае (иначе дефолт из SetDefault).
+func resolveCORSAllowAll(selfHosted, explicitlySet, value bool) bool {
+	if explicitlySet {
+		return value
+	}
+	return selfHosted || value
+}
+
 // PushEnabled сообщает, настроен ли Web Push (заданы VAPID-ключи).
 // Если false — /push/* не регистрируются и фоновая джоба не запускается.
 func (c *Config) PushEnabled() bool {
@@ -140,16 +151,23 @@ const minSecretLength = 32
 const defaultJWTSecret = "change-me-in-production"
 
 // validateSecrets останавливает запуск сервера (log.Fatal), если
-// jwt_secret оставлен дефолтным/слишком коротким, либо если self_hosted
-// включён, а server_secret отсутствует/слишком короткий. Тихий запуск
-// с такими значениями означает, что JWT или self-hosted вход можно
-// подделать/подобрать.
+// checkSecrets нашёл проблему — тихий запуск с дефолтным/слишком коротким
+// секретом означает, что JWT или self-hosted вход можно подделать/подобрать.
 func (c *Config) validateSecrets() {
+	if err := c.checkSecrets(); err != nil {
+		log.Fatal(err)
+	}
+}
+
+// checkSecrets — чистая версия validateSecrets (без log.Fatal), чтобы
+// правило можно было покрыть unit-тестами.
+func (c *Config) checkSecrets() error {
 	if c.JWTSecret == defaultJWTSecret || len(c.JWTSecret) < minSecretLength {
-		log.Fatalf("auth.jwt_secret не задан или короче %d символов — задайте его в config.yaml (см. config.example.yaml) или через SUBRADAR_AUTH_JWT_SECRET", minSecretLength)
+		return fmt.Errorf("auth.jwt_secret не задан или короче %d символов — задайте его в config.yaml (см. config.example.yaml) или через SUBRADAR_AUTH_JWT_SECRET", minSecretLength)
 	}
 
 	if c.SelfHosted && len(c.ServerSecret) < minSecretLength {
-		log.Fatalf("auth.self_hosted=true, но auth.server_secret не задан или короче %d символов — задайте его в config.yaml (см. config.example.yaml) или через SUBRADAR_AUTH_SERVER_SECRET", minSecretLength)
+		return fmt.Errorf("auth.self_hosted=true, но auth.server_secret не задан или короче %d символов — задайте его в config.yaml (см. config.example.yaml) или через SUBRADAR_AUTH_SERVER_SECRET", minSecretLength)
 	}
+	return nil
 }
