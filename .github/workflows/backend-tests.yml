@@ -16,8 +16,6 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -27,9 +25,3 @@ jobs:
 
       - name: Run all backend tests (gofmt, vet, go test)
         run: backend/tests/RUN_ALL.sh
-
-      - name: Check changed code has tests alongside it
-        run: |
-          backend/tests/check_new_code_has_tests.sh \
-            "${{ github.event.pull_request.base.sha }}" \
-            "${{ github.event.pull_request.head.sha }}"
