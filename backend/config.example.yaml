@@ -25,12 +25,12 @@ auth:
   self_hosted: true
   server_secret: "CHANGE_ME"
   # true — ставить Secure на auth-cookie. Только если сервер за HTTPS,
-  # иначе браузер не будет отправлять cookie обратно. См. README.md.
+  # иначе браузер не будет отправлять cookie обратно. См. docs/DevDocs/backend/backend.md, раздел 3.
   cookie_secure: false
 
 cors:
   # true — разрешить любой origin (веб-клиенту). Для self_hosted включается
-  # автоматически, если явно не задано. См. README.md, раздел "Конфигурация".
+  # автоматически, если явно не задано. См. docs/DevDocs/backend/backend.md, раздел 3.
   allow_all: false
   # Явный список разрешённых origin — актуально для shared-режима.
   # origins: ["https://app.example.com"]

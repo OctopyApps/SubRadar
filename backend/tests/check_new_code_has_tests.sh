@@ -34,7 +34,7 @@ done <<<"$CHANGED"
 if [ "$FAILED" -eq 1 ]; then
   echo ""
   echo "Директория с изменённым кодом под backend/internal/ должна содержать тесты."
-  echo "См. backend/README.md, раздел \"Тестирование\"."
+  echo "См. docs/DevDocs/backend/backend.md, раздел 8 (Тестирование)."
   exit 1
 fi
 

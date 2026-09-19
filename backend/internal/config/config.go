@@ -31,7 +31,7 @@ type Config struct {
 	// Web Push (напоминания о скором списании для веб-клиента). Пустые
 	// VAPIDPublicKey/VAPIDPrivateKey означают, что push отключён — сервер
 	// не публикует /push/*, фоновая джоба не запускается. Сгенерировать:
-	// webpush.GenerateVAPIDKeys() (см. README.md).
+	// webpush.GenerateVAPIDKeys() (см. docs/DevDocs/backend/backend.md, раздел 3).
 	VAPIDPublicKey  string
 	VAPIDPrivateKey string
 	VAPIDSubscriber string // контакт для push-сервиса: "mailto:you@example.com"
@@ -89,7 +89,7 @@ func Load() *Config {
 	// дефолт остаётся false — там сервер публичный и с чужими пользователями.
 	corsAllowAll := resolveCORSAllowAll(selfHosted, viper.IsSet("cors.allow_all"), viper.GetBool("cors.allow_all"))
 	if corsAllowAll && selfHosted && !viper.IsSet("cors.allow_all") {
-		log.Println("self_hosted=true, cors.allow_all не задан — по умолчанию разрешаем любой origin (см. README.md)")
+		log.Println("self_hosted=true, cors.allow_all не задан — по умолчанию разрешаем любой origin (см. docs/DevDocs/backend/backend.md)")
 	}
 
 	cfg := &Config{
@@ -143,7 +143,7 @@ func (c *Config) PushEnabled() bool {
 }
 
 // minSecretLength — минимальная допустимая длина jwt_secret/server_secret.
-// См. README.md, раздел "Конфигурация".
+// См. docs/DevDocs/backend/backend.md, раздел 3.
 const minSecretLength = 32
 
 // defaultJWTSecret — значение-заглушка из SetDefault выше; запуск с ним
