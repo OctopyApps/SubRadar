@@ -32,7 +32,10 @@ type User struct {
 	BlockedReason *string      `json:"blocked_reason,omitempty"`
 	DisplayName   string       `json:"display_name"`
 	LastSeenAt    *time.Time   `json:"last_seen_at,omitempty"`
-	CreatedAt     time.Time    `json:"created_at"`
+	// PushLeadTimes — дефолт "за сколько дней до списания слать Web Push",
+	// используется push_subscriptions без своего override. Например [1,3].
+	PushLeadTimes []int     `json:"push_lead_times"`
+	CreatedAt     time.Time `json:"created_at"`
 }
 
 // IsAdmin возвращает true если пользователь — администратор.
@@ -43,12 +46,13 @@ func (u *User) IsAdmin() bool {
 // UserPublic — безопасное представление пользователя для API-ответов.
 // Используется в /auth/me и в списках пользователей для не-админов.
 type UserPublic struct {
-	ID          int64        `json:"id"`
-	Email       string       `json:"email"`
-	DisplayName string       `json:"display_name"`
-	Provider    AuthProvider `json:"provider"`
-	Role        UserRole     `json:"role"`
-	CreatedAt   time.Time    `json:"created_at"`
+	ID            int64        `json:"id"`
+	Email         string       `json:"email"`
+	DisplayName   string       `json:"display_name"`
+	Provider      AuthProvider `json:"provider"`
+	Role          UserRole     `json:"role"`
+	PushLeadTimes []int        `json:"push_lead_times"`
+	CreatedAt     time.Time    `json:"created_at"`
 }
 
 // UserAdmin — расширенное представление для /admin/users/*.
@@ -69,12 +73,13 @@ type UserAdmin struct {
 // ToPublic конвертирует User в UserPublic.
 func (u *User) ToPublic() UserPublic {
 	return UserPublic{
-		ID:          u.ID,
-		Email:       u.Email,
-		DisplayName: u.DisplayName,
-		Provider:    u.Provider,
-		Role:        u.Role,
-		CreatedAt:   u.CreatedAt,
+		ID:            u.ID,
+		Email:         u.Email,
+		DisplayName:   u.DisplayName,
+		Provider:      u.Provider,
+		Role:          u.Role,
+		PushLeadTimes: u.PushLeadTimes,
+		CreatedAt:     u.CreatedAt,
 	}
 }
 

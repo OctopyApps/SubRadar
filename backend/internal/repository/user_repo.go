@@ -2,6 +2,7 @@ package repository
 
 import (
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"time"
 
@@ -36,6 +37,9 @@ func (r *UserRepository) Create(email, passwordHash string, provider models.Auth
 		email, passwordHash, provider, providerID, role, time.Now(),
 	)
 	if err != nil {
+		if isUniqueConstraintErr(err) {
+			return 0, ErrAlreadyExists
+		}
 		return 0, err
 	}
 	return res.LastInsertId()
@@ -53,7 +57,7 @@ func (r *UserRepository) FindByEmail(email string) (*models.User, error) {
 	row := r.db.QueryRow(
 		`SELECT id, email, password_hash, provider, provider_id,
 		        role, is_blocked, blocked_at, blocked_reason,
-		        display_name, last_seen_at, created_at
+		        display_name, last_seen_at, push_lead_times, created_at
 		 FROM users WHERE email = ?`, email,
 	)
 	return scanUser(row)
@@ -64,7 +68,7 @@ func (r *UserRepository) FindByProviderID(provider models.AuthProvider, provider
 	row := r.db.QueryRow(
 		`SELECT id, email, password_hash, provider, provider_id,
 		        role, is_blocked, blocked_at, blocked_reason,
-		        display_name, last_seen_at, created_at
+		        display_name, last_seen_at, push_lead_times, created_at
 		 FROM users WHERE provider = ? AND provider_id = ?`, provider, providerID,
 	)
 	return scanUser(row)
@@ -75,7 +79,7 @@ func (r *UserRepository) FindByID(id int64) (*models.User, error) {
 	row := r.db.QueryRow(
 		`SELECT id, email, password_hash, provider, provider_id,
 		        role, is_blocked, blocked_at, blocked_reason,
-		        display_name, last_seen_at, created_at
+		        display_name, last_seen_at, push_lead_times, created_at
 		 FROM users WHERE id = ?`, id,
 	)
 	return scanUser(row)
@@ -104,6 +108,21 @@ func (r *UserRepository) UpdatePassword(id int64, passwordHash string) error {
 	_, err := r.db.Exec(
 		`UPDATE users SET password_hash = ? WHERE id = ?`,
 		passwordHash, id,
+	)
+	return err
+}
+
+// SetPushLeadTimes обновляет дефолт "за сколько дней до списания слать
+// Web Push" для пользователя (используется push_subscriptions без
+// собственного override).
+func (r *UserRepository) SetPushLeadTimes(id int64, leadTimes []int) error {
+	raw, err := json.Marshal(leadTimes)
+	if err != nil {
+		return err
+	}
+	_, err = r.db.Exec(
+		`UPDATE users SET push_lead_times = ? WHERE id = ?`,
+		string(raw), id,
 	)
 	return err
 }
@@ -151,10 +170,11 @@ func (r *UserRepository) Delete(id int64) error {
 func scanUser(row *sql.Row) (*models.User, error) {
 	u := &models.User{}
 	var isBlocked int // SQLite хранит bool как INTEGER
+	var pushLeadTimes string
 	err := row.Scan(
 		&u.ID, &u.Email, &u.PasswordHash, &u.Provider, &u.ProviderID,
 		&u.Role, &isBlocked, &u.BlockedAt, &u.BlockedReason,
-		&u.DisplayName, &u.LastSeenAt, &u.CreatedAt,
+		&u.DisplayName, &u.LastSeenAt, &pushLeadTimes, &u.CreatedAt,
 	)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
@@ -163,5 +183,8 @@ func scanUser(row *sql.Row) (*models.User, error) {
 		return nil, err
 	}
 	u.IsBlocked = isBlocked == 1
+	if err := json.Unmarshal([]byte(pushLeadTimes), &u.PushLeadTimes); err != nil {
+		return nil, err
+	}
 	return u, nil
 }

@@ -1,0 +1,27 @@
+name: Backend Tests
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - "backend/**"
+
+jobs:
+  test:
+    name: Tests & test-coverage checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: backend/go.mod
+          cache-dependency-path: backend/go.sum
+
+      - name: Run all backend tests (gofmt, vet, go test)
+        run: backend/tests/RUN_ALL.sh

@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/OctopyApps/SubRadar-BackEnd/internal/auth"
 	"github.com/OctopyApps/SubRadar-BackEnd/internal/config"
@@ -11,6 +12,7 @@ import (
 	"github.com/OctopyApps/SubRadar-BackEnd/internal/repository"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-chi/httprate"
 )
 
 func NewRouter(db *sql.DB, cfg *config.Config) http.Handler {
@@ -35,6 +37,7 @@ func NewRouter(db *sql.DB, cfg *config.Config) http.Handler {
 	categoryRepo := repository.NewCategoryRepository(db)
 	currencyRepo := repository.NewCurrencyRepository(db)
 	adminRepo := repository.NewAdminRepository(db)
+	pushRepo := repository.NewPushSubscriptionRepository(db)
 
 	// --- Хендлеры ---
 	authHandler := handlers.NewAuthHandler(userRepo, cfg)
@@ -44,6 +47,7 @@ func NewRouter(db *sql.DB, cfg *config.Config) http.Handler {
 	categoryHandler := handlers.NewCategoryHandler(categoryRepo)
 	currencyHandler := handlers.NewCurrencyHandler(currencyRepo)
 	adminHandler := handlers.NewAdminHandler(adminRepo, userRepo)
+	pushHandler := handlers.NewPushHandler(pushRepo, cfg)
 
 	// --- Health check (публичный) ---
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
@@ -51,11 +55,17 @@ func NewRouter(db *sql.DB, cfg *config.Config) http.Handler {
 	})
 
 	// --- Публичные маршруты (без токена) ---
-	r.Post("/auth/register", authHandler.Register)
-	r.Post("/auth/login", authHandler.Login)
-	r.Post("/auth/self-hosted", authHandler.SelfHosted)
-	r.Post("/auth/google", authHandler.Google)
-	r.Post("/auth/apple", authHandler.Apple)
+	// Rate limit: 5 попыток в минуту с одного IP — усложняет перебор
+	// пароля/секрета через /auth/login и /auth/self-hosted.
+	r.Group(func(r chi.Router) {
+		r.Use(httprate.LimitByIP(5, time.Minute))
+
+		r.Post("/auth/register", authHandler.Register)
+		r.Post("/auth/login", authHandler.Login)
+		r.Post("/auth/self-hosted", authHandler.SelfHosted)
+		r.Post("/auth/google", authHandler.Google)
+		r.Post("/auth/apple", authHandler.Apple)
+	})
 
 	// --- Защищённые маршруты (нужен JWT) ---
 	r.Group(func(r chi.Router) {
@@ -102,7 +112,19 @@ func NewRouter(db *sql.DB, cfg *config.Config) http.Handler {
 			r.Post("/admin/categories", adminHandler.CreateSystemCategory)
 			r.Delete("/admin/categories/{id}", adminHandler.DeleteSystemCategory)
 		})
+
+		// Web Push — регистрируем только если заданы VAPID-ключи, иначе
+		// это ничего не значащая мёртвая фича (пуш физически не отправить).
+		if cfg.PushEnabled() {
+			r.Post("/push/subscribe", pushHandler.Subscribe)
+			r.Delete("/push/subscribe", pushHandler.Unsubscribe)
+		}
 	})
+
+	// Публичный — нужен до логина, чтобы вызвать pushManager.subscribe().
+	if cfg.PushEnabled() {
+		r.Get("/push/vapid-public-key", pushHandler.VAPIDPublicKey)
+	}
 
 	return r
 }

@@ -45,10 +45,20 @@ func (h *MeHandler) Me(w http.ResponseWriter, r *http.Request) {
 
 // UpdateMe godoc
 // PATCH /auth/me
-// Обновляет display_name текущего пользователя.
+// Обновляет display_name текущего пользователя и, опционально,
+// дефолтный push_lead_times (за сколько дней до списания слать Web Push
+// на устройства без своего override).
 type updateMeRequest struct {
 	DisplayName string `json:"display_name"`
+	// Указатель — чтобы отличить "поле не передано" (nil, не трогаем) от
+	// "передан пустой список" ([]int{}, означает "отключить дефолтные
+	// напоминания").
+	PushLeadTimes *[]int `json:"push_lead_times,omitempty"`
 }
+
+// maxPushLeadTimeDays — верхняя граница на sanity: напоминание "за 400 дней"
+// смысла не имеет и не с чем сравнивать next_billing_date разумно далеко.
+const maxPushLeadTimeDays = 90
 
 func (h *MeHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 	userID, ok := auth.UserIDFromContext(r.Context())
@@ -69,9 +79,25 @@ func (h *MeHandler) UpdateMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if req.PushLeadTimes != nil {
+		for _, d := range *req.PushLeadTimes {
+			if d < 0 || d > maxPushLeadTimeDays {
+				respondError(w, http.StatusBadRequest, "push_lead_times: день должен быть от 0 до 90")
+				return
+			}
+		}
+	}
+
 	if err := h.users.UpdateDisplayName(userID, req.DisplayName); err != nil {
 		respondError(w, http.StatusInternalServerError, "ошибка обновления профиля")
 		return
+	}
+
+	if req.PushLeadTimes != nil {
+		if err := h.users.SetPushLeadTimes(userID, *req.PushLeadTimes); err != nil {
+			respondError(w, http.StatusInternalServerError, "ошибка обновления push_lead_times")
+			return
+		}
 	}
 
 	user, err := h.users.FindByID(userID)

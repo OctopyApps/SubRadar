@@ -209,7 +209,7 @@ func (h *AdminHandler) CreateSystemCategory(w http.ResponseWriter, r *http.Reque
 
 	cat, err := h.admin.CreateSystemCategory(req.Name, req.Icon)
 	if err != nil {
-		if strings.Contains(err.Error(), "UNIQUE") {
+		if errors.Is(err, repository.ErrAlreadyExists) {
 			respondError(w, http.StatusConflict, "категория с таким именем уже существует")
 			return
 		}

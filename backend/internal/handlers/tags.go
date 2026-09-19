@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 
 	"github.com/OctopyApps/SubRadar-BackEnd/internal/auth"
@@ -61,6 +62,10 @@ func (h *TagHandler) Delete(w http.ResponseWriter, r *http.Request) {
 	id := chi.URLParam(r, "id")
 
 	if err := h.tags.Delete(id, userID); err != nil {
+		if errors.Is(err, repository.ErrNotFound) {
+			respondError(w, http.StatusNotFound, "тег не найден")
+			return
+		}
 		respondError(w, http.StatusInternalServerError, "ошибка удаления тега")
 		return
 	}

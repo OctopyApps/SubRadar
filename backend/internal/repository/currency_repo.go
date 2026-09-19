@@ -78,6 +78,12 @@ func (r *CurrencyRepository) FindOrCreate(userID int64, code, symbol, displayNam
 
 // Delete удаляет валюту пользователя.
 func (r *CurrencyRepository) Delete(id string, userID int64) error {
-	_, err := r.db.Exec(`DELETE FROM currencies WHERE id = ? AND user_id = ?`, id, userID)
-	return err
+	result, err := r.db.Exec(`DELETE FROM currencies WHERE id = ? AND user_id = ?`, id, userID)
+	if err != nil {
+		return err
+	}
+	if rows, _ := result.RowsAffected(); rows == 0 {
+		return ErrNotFound
+	}
+	return nil
 }
